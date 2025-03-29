@@ -1,5 +1,6 @@
 import { Tabs } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 
 export default function TabLayout() {
   return (
@@ -23,6 +24,15 @@ export default function TabLayout() {
           title: 'Boarding Pass',
           tabBarIcon: ({ size, color }) => (
             <Ionicons name="airplane" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="Summary"
+        options={{
+          title: 'Summary',
+          tabBarIcon: ({ size, color }) => (
+            <MaterialCommunityIcons name="notebook" size={size} color={color} />
           ),
         }}
       />
