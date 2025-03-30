@@ -42,7 +42,7 @@ export default function BoardingScreen() {
         source={{ uri: 'https://images.unsplash.com/photo-1436491865332-7a61a109cc05' }}
         style={[StyleSheet.absoluteFillObject, { opacity: 0.2 }]}
       />
-      <LinearGradient colors={['rgba(0,0,0,0.7)', 'rgba(0,0,0,0.9)']} style={StyleSheet.absoluteFillObject} />
+      <LinearGradient colors={['rgba(0,0,0,0.9)', 'rgba(0,0,0,0.9)']} style={StyleSheet.absoluteFillObject} />
       <View style={styles.content}>
         <Text style={styles.title}>Flight Information</Text>
         
@@ -131,7 +131,7 @@ const styles = StyleSheet.create({
   button: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#007AFF',
+    backgroundColor: '#6a4c9c',
     padding: 16,
     borderRadius: 12,
     marginVertical: 20,

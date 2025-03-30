@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, ScrollView } from 'react-native';
-import { Button } from 'react-native-paper';
+import { View, Text, StyleSheet, TextInput, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 
 const SummaryPage: React.FC = () => {
   const [question, setQuestion] = useState<string>('');
   const [aiResponse, setAiResponse] = useState<string>('');
+  const [loading, setLoading] = useState<boolean>(false);
 
   const handleAskAI = (): void => {
     // Mock AI logic
@@ -84,16 +85,26 @@ const SummaryPage: React.FC = () => {
           value={question}
           onChangeText={setQuestion}
         />
-        <Button mode="contained" onPress={handleAskAI}>
-          Ask AI
-        </Button>
-        <Text style={styles.aiResponse}>{aiResponse}</Text>
+        <TouchableOpacity
+  style={styles.button}
+  onPress={handleAskAI}
+  disabled={loading}
+>
+  <Ionicons name="chatbubbles" size={24} color="#fff" style={styles.buttonIcon} />
+  <Text style={styles.buttonText}>Ask AI</Text>
+</TouchableOpacity>
+
+        {loading ? (
+          <ActivityIndicator size="small" color="#fff" style={styles.loading} />
+        ) : (
+          <Text style={styles.aiResponse}>{aiResponse}</Text>
+        )}
       </View>
 
       {/* Sync Button */}
-      <Button mode="contained" color="#1e90ff" style={styles.syncButton}>
-        Sync to Timeline
-      </Button>
+      <TouchableOpacity style={styles.syncButton}>
+        <Text style={styles.syncButtonText}>Sync to Timeline</Text>
+      </TouchableOpacity>
     </ScrollView>
   );
 };
@@ -115,7 +126,7 @@ const styles = StyleSheet.create({
   },
   subTitle: {
     fontSize: 18,
-    color: '#1e90ff',
+    color: '#4a90e2',
   },
   scheduleSection: {
     marginBottom: 20,
@@ -164,9 +175,42 @@ const styles = StyleSheet.create({
     marginTop: 10,
     fontSize: 16,
   },
+  loading: {
+    marginTop: 10,
+  },
+  button: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center', // Center content horizontally
+    backgroundColor: '#6a4c9c',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    marginTop: 10,
+    width: '60%', // Adjust width to ensure the button is not too wide
+    alignSelf: 'center', // Center the button horizontally within its parent
+  },
+  
+  buttonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginLeft: 8,
+  },
+  buttonIcon: {
+    marginRight: 8,
+  },
   syncButton: {
+    backgroundColor: '#6a4c9c',
+    paddingVertical: 14,
+    borderRadius: 8,
+    alignItems: 'center',
     marginTop: 30,
-    padding: 10,
+  },
+  syncButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });
 
