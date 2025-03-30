@@ -39,21 +39,14 @@ const formatDateHeader = (dateKey: string): string => {
         const eventDate = new Date(dateKey + 'T00:00:00Z'); // Treat dateKey as UTC date start
         eventDate.setHours(0, 0, 0, 0); // Normalize event date
 
-        const diffTime = eventDate.getTime() - today.getTime();
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-        if (diffDays === 0) {
-            return 'Today';
-        } else if (diffDays === 1) {
-            return 'Tomorrow';
-        } else {
-            return eventDate.toLocaleDateString('en-US', {
-                weekday: 'short',
-                month: 'short',
-                day: 'numeric',
-                timeZone: 'UTC' // Keep consistent with grouping logic
-            });
-        }
+        // Removed logic for "Today" / "Tomorrow"
+        // Always return the formatted date
+        return eventDate.toLocaleDateString('en-US', {
+            weekday: 'short',
+            month: 'short',
+            day: 'numeric',
+            timeZone: 'UTC' // Keep consistent with grouping logic
+        });
     } catch {
         return 'Invalid Date';
     }
