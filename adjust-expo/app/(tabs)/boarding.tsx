@@ -1,49 +1,75 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, ActivityIndicator, Image, Keyboard, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, ActivityIndicator, Image, Keyboard, Alert, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router'; // Use useRouter for navigation
-import { useFlightData } from '../../context/FlightDataContext'; // Import the context hook
+import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
+import { useRouter } from 'expo-router';
+import { useFlightData } from '../../context/FlightDataContext';
 
 export default function BoardingScreen() {
-  // Local state for inputs ONLY
-  const [carrierCode, setCarrierCode] = useState('');
-  const [flightNumber, setFlightNumber] = useState('');
-  const [departureDate, setDepartureDate] = useState('');
+  // State for inputs
+  const [flightCode, setFlightCode] = useState(''); // Combined flight code (e.g., UA2116)
+  const [date, setDate] = useState<Date | undefined>(undefined); // Date object for picker
+  const [showDatePicker, setShowDatePicker] = useState(false); // To toggle picker visibility
 
-  // Get context functions and state
+  // Context and navigation
   const { fetchFlightData, isLoading, error } = useFlightData();
-  const router = useRouter(); // Use router for navigation
+  const router = useRouter();
 
-  const handleFetchAndNavigate = async () => {
-    Keyboard.dismiss(); // Dismiss keyboard before fetching
+  // Handler for date selection
+  const onDateChange = (event: DateTimePickerEvent, selectedDate?: Date) => {
+    const currentDate = selectedDate || date;
+    setShowDatePicker(Platform.OS === 'ios'); // Keep open on iOS until dismissed
+    if (currentDate) {
+        setDate(currentDate);
+    }
+  };
 
-    // Basic validation (context also validates, but good to have here too)
-    if (!carrierCode || !flightNumber || !departureDate) {
-      Alert.alert('Missing Information', 'Please enter Carrier Code, Flight Number, and Departure Date.');
+  // Handler for submitting the form (Refactored to use .then/.catch)
+  const handleFetchAndNavigate = () => { // Removed async
+    Keyboard.dismiss();
+
+    // Validation
+    if (!flightCode || !date) {
+      Alert.alert('Missing Information', 'Please enter Flight Code and select a Departure Date.');
       return;
     }
-     if (!/^\d{4}-\d{2}-\d{2}$/.test(departureDate)) {
-        Alert.alert('Invalid Date Format', 'Please enter the date in YYYY-MM-DD format.');
+
+    // Parse flight code (assuming 2 letters + numbers)
+    const potentialCarrierCode = flightCode.substring(0, 2).toUpperCase();
+    const potentialFlightNumber = flightCode.substring(2);
+
+    // Validate flight code format
+    if (!/^[A-Z]{2}$/.test(potentialCarrierCode) || !/^\d{1,4}$/.test(potentialFlightNumber)) {
+        Alert.alert('Invalid Flight Code', 'Please enter the code in the format AA1234 (2 letters followed by numbers).');
         return;
     }
 
+    // Format date to YYYY-MM-DD
+    const formattedDate = date.toISOString().split('T')[0];
 
-    const success = await fetchFlightData(carrierCode.toUpperCase(), flightNumber, departureDate); // Convert carrier code to uppercase
-    if (success) {
-      // Navigate to the summary tab after successful fetch
-      router.push('/(tabs)/summary'); // Use router.push for tab navigation
-    } else {
-      // Error is handled by displaying the 'error' state from context below
-      // Optionally show an alert here too if desired
-      // Alert.alert('Error', 'Failed to fetch flight data. Please check details and try again.');
-    }
+    // Fetch data using context function with .then() and .catch()
+    fetchFlightData(potentialCarrierCode, potentialFlightNumber, formattedDate)
+      .then(success => {
+        if (success) {
+          router.push('/(tabs)/summary'); // Navigate on success
+        }
+        // If not success, the error state is already set in fetchFlightData
+        // and will be displayed by the {error && ...} block below
+      })
+      .catch(err => {
+        // This catch is mostly for unexpected errors *before* fetchFlightData sets its own error state
+        console.error("Unexpected error in handleFetchAndNavigate:", err);
+        // Optionally set a generic error message here if needed, though fetchFlightData should handle API errors
+        // setError("An unexpected error occurred.");
+      });
   };
 
   return (
     <View style={styles.container}>
+      {/* Background Image and Gradient */}
       <Image
-        source={{ uri: 'https://images.unsplash.com/photo-1436491865332-7a61a109cc05' }} // Keep background image
+        source={{ uri: 'https://images.unsplash.com/photo-1436491865332-7a61a109cc05' }}
         style={[StyleSheet.absoluteFillObject, { opacity: 0.2 }]}
       />
       <LinearGradient colors={['rgba(0,0,0,0.7)', 'rgba(0,0,0,0.9)']} style={StyleSheet.absoluteFillObject} />
@@ -51,64 +77,64 @@ export default function BoardingScreen() {
       <View style={styles.content}>
         <Text style={styles.title}>Enter Flight Information</Text>
 
+        {/* Combined Flight Code Input */}
         <TextInput
           style={styles.input}
-          placeholder="Carrier Code (e.g., UA, AA)"
+          placeholder="Flight Code (e.g., UA2116)"
           placeholderTextColor="#888"
-          value={carrierCode}
-          onChangeText={setCarrierCode}
-          autoCapitalize="characters" // Helps with carrier codes
-          maxLength={2} // Carrier codes are usually 2 letters
+          value={flightCode}
+          onChangeText={setFlightCode}
+          autoCapitalize="characters"
+          maxLength={6} // Adjust as needed (e.g., AA1234)
         />
 
-        <TextInput
-          style={styles.input}
-          placeholder="Flight Number (e.g., 1234)"
-          placeholderTextColor="#888"
-          value={flightNumber}
-          onChangeText={setFlightNumber}
-          keyboardType="numeric" // Flight numbers are typically numeric
-        />
+        {/* Date Picker Trigger Button */}
+        <TouchableOpacity onPress={() => setShowDatePicker(true)} style={styles.datePickerButton}>
+          <Ionicons name="calendar-outline" size={20} color="#fff" style={{ marginRight: 10 }} />
+          <Text style={styles.datePickerButtonText}>
+            {date ? date.toLocaleDateString() : 'Select Departure Date'}
+          </Text>
+        </TouchableOpacity>
 
-        <TextInput
-          style={styles.input}
-          placeholder="Departure Date (YYYY-MM-DD)"
-          placeholderTextColor="#888"
-          value={departureDate}
-          onChangeText={setDepartureDate}
-          maxLength={10} // YYYY-MM-DD
-        />
+        {/* Date Picker Modal */}
+        {showDatePicker && (
+          <DateTimePicker
+            testID="dateTimePicker"
+            value={date || new Date()} // Default to today if no date selected
+            mode="date"
+            display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+            onChange={onDateChange}
+            // minimumDate={new Date()} // Optional: Prevent selecting past dates
+          />
+        )}
 
-        {/* Display loading indicator based on context state */}
+        {/* Loading Indicator or Submit Button */}
         {isLoading ? (
           <ActivityIndicator size="large" color="#007AFF" style={styles.loading} />
         ) : (
           <TouchableOpacity
             style={styles.button}
-            onPress={handleFetchAndNavigate} // Use the new handler
+            onPress={handleFetchAndNavigate}
           >
             <Ionicons name="paper-plane-outline" size={24} color="#fff" style={styles.buttonIcon} />
             <Text style={styles.buttonText}>Get AI Travel Plan</Text>
           </TouchableOpacity>
         )}
 
-        {/* Display error message based on context state */}
-        {error && !isLoading ? ( // Only show error if not loading
+        {/* Error Message Display */}
+        {error && !isLoading && (
           <Text style={styles.errorText}>{error}</Text>
-        ) : null}
-
-        {/* Removed the results display section from here */}
-
+        )}
       </View>
     </View>
   );
 }
 
-// Keep existing styles, maybe adjust input width/margins if needed
+// Styles (kept similar to previous version)
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5', // Fallback background
+    backgroundColor: '#f5f5f5',
   },
   content: {
     padding: 20,
@@ -120,29 +146,45 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: 'bold',
     color: '#fff',
-    marginBottom: 30, // Increased margin
+    marginBottom: 30,
     textAlign: 'center',
   },
   input: {
-    width: '90%', // Slightly wider
-    padding: 15, // More padding
+    width: '90%',
+    padding: 15,
     backgroundColor: '#333',
     color: '#fff',
     borderRadius: 8,
-    marginBottom: 15, // Adjusted margin
+    marginBottom: 15,
     fontSize: 16,
     borderWidth: 1,
     borderColor: '#555',
+  },
+  datePickerButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    width: '90%',
+    padding: 15,
+    backgroundColor: '#333',
+    borderRadius: 8,
+    marginBottom: 15,
+    borderWidth: 1,
+    borderColor: '#555',
+    justifyContent: 'center',
+  },
+  datePickerButtonText: {
+    color: '#fff',
+    fontSize: 16,
   },
   button: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#007AFF',
     paddingVertical: 16,
-    paddingHorizontal: 30, // Wider padding
+    paddingHorizontal: 30,
     borderRadius: 12,
     marginVertical: 20,
-    shadowColor: '#000', // Add shadow for depth
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 4,
@@ -158,18 +200,17 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   loading: {
-    marginVertical: 46, // Match button vertical space roughly
+    marginVertical: 46, // Match button vertical space
   },
   errorText: {
-    color: '#FF6B6B', // Brighter red for dark background
-    backgroundColor: 'rgba(255, 107, 107, 0.1)', // Subtle background
+    color: '#FF6B6B',
+    backgroundColor: 'rgba(255, 107, 107, 0.1)',
     paddingHorizontal: 15,
     paddingVertical: 10,
     borderRadius: 8,
-    fontSize: 15, // Slightly smaller
+    fontSize: 15,
     marginTop: 15,
     textAlign: 'center',
     maxWidth: '90%',
   },
-  // Removed resultContainer styles as results are shown on summary page
 });
