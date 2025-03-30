@@ -1,99 +1,171 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, ScrollView } from 'react-native';
-import { Button } from 'react-native-paper';
+import React from 'react';
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
+import { useFlightData } from '../../context/FlightDataContext'; // Import the context hook
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons'; // Import icons
+
+// Helper component for rendering recommendation items
+const RecommendationItem: React.FC<{ text: string; icon?: keyof typeof Ionicons.glyphMap }> = ({ text, icon }) => (
+  <View style={styles.subContainer}>
+    {icon && <Ionicons name={icon} size={18} color="#ADD8E6" style={styles.itemIcon} />}
+    <Text style={styles.sectionDetails}>{text}</Text>
+  </View>
+);
+
+// Helper component for rendering sections
+const InfoSection: React.FC<{ title: string; children: React.ReactNode; icon?: keyof typeof MaterialCommunityIcons.glyphMap }> = ({ title, children, icon }) => (
+  <View style={styles.scheduleSection}>
+    <View style={styles.sectionHeader}>
+       {icon && <MaterialCommunityIcons name={icon} size={22} color="#007AFF" style={styles.sectionIcon} />}
+       <Text style={styles.sectionTitle}>{title}</Text>
+    </View>
+    <View style={styles.containerBox}>
+      {children}
+    </View>
+  </View>
+);
+
 
 const SummaryPage: React.FC = () => {
-  const [question, setQuestion] = useState<string>('');
-  const [aiResponse, setAiResponse] = useState<string>('');
+  const { flightData, isLoading, error } = useFlightData();
 
-  const handleAskAI = (): void => {
-    // Mock AI logic
-    const mockResponses: { [key: string]: string } = {
-      "What is my sleep schedule?": "Your sleep schedule is adjusted 1 hour earlier each day. On the flight, you'll sleep after dinner.",
-      "When should I take melatonin?": "You should take melatonin 30 minutes before your target bedtime on Day 0 and Day 1.",
-      "Can I drink coffee on the flight?": "Avoid caffeine on the flight, especially near your target bedtime.",
-    };
+  // --- Loading State ---
+  if (isLoading) {
+    return (
+      <View style={[styles.container, styles.centerContent]}>
+        <ActivityIndicator size="large" color="#007AFF" />
+        <Text style={styles.loadingText}>Generating your AI Travel Plan...</Text>
+      </View>
+    );
+  }
 
-    setAiResponse(mockResponses[question] || "Sorry, I didn't understand that.");
-  };
+  // --- Error State ---
+  if (error) {
+    return (
+      <View style={[styles.container, styles.centerContent]}>
+        <Ionicons name="alert-circle-outline" size={60} color="#FF6B6B" />
+        <Text style={styles.errorTitle}>Error</Text>
+        <Text style={styles.errorText}>{error}</Text>
+        {/* Optionally add a retry button here that calls fetchFlightData again */}
+      </View>
+    );
+  }
+
+  // --- No Data State ---
+  if (!flightData || !flightData.success || !flightData.flight_details || !flightData.recommendations) {
+    return (
+      <View style={[styles.container, styles.centerContent]}>
+         <Ionicons name="information-circle-outline" size={60} color="#007AFF" />
+        <Text style={styles.noDataText}>Enter your flight details on the 'Boarding Pass' tab to generate an AI travel plan.</Text>
+      </View>
+    );
+  }
+
+  // --- Success State ---
+  const { flight_details, recommendations } = flightData;
+
+  // Handle cases where backend parsing might have failed
+  const recs = recommendations.raw_crew_output || recommendations.error_parsing_crew_result || !recommendations.sleep_schedule
+    ? null // Indicate that structured recommendations are not available
+    : recommendations;
+
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
       {/* Header Section */}
       <View style={styles.header}>
-        <Text style={styles.title}>Jet Lag Plan Summary</Text>
-        <Text style={styles.subTitle}>For NYC ➔ Paris</Text>
+        <Text style={styles.title}>AI Travel Plan</Text>
+        <Text style={styles.subTitle}>
+          {flight_details.departure.airportCode} ➔ {flight_details.arrival.airportCode} ({flight_details.flightDesignator.carrierCode}{flight_details.flightDesignator.flightNumber})
+        </Text>
       </View>
 
-      {/* Pre-Flight Section */}
-      <View style={styles.scheduleSection}>
-        <Text style={styles.sectionTitle}>Pre-Flight</Text>
-        <View style={styles.containerBox}>
-          <View style={styles.subContainer}>
-            <Text style={styles.sectionDetails}>
-              Adjust your sleep by 1 hour earlier each day.
-            </Text>
-          </View>
-          <View style={styles.subContainer}>
-            <Text style={styles.sectionDetails}>
-              Take melatonin at 6 PM before your usual bedtime.
-            </Text>
-          </View>
-        </View>
-      </View>
+      {/* Display Recommendations if available */}
+      {recs ? (
+        <>
+          {/* Sleep Schedule Section */}
+          {recs.sleep_schedule && (
+            <InfoSection title="Sleep Schedule" icon="power-sleep">
+              {recs.sleep_schedule.adjustment_period_advice && <RecommendationItem text={recs.sleep_schedule.adjustment_period_advice} icon="time-outline" />}
+              {recs.sleep_schedule.recommended_bedtime_local && <RecommendationItem text={`Bedtime: ${recs.sleep_schedule.recommended_bedtime_local}`} icon="bed-outline" />}
+              {recs.sleep_schedule.recommended_wake_time_local && <RecommendationItem text={`Wake Time: ${recs.sleep_schedule.recommended_wake_time_local}`} icon="sunny-outline" />}
+              {recs.sleep_schedule.nap_strategy_advice && <RecommendationItem text={`Naps: ${recs.sleep_schedule.nap_strategy_advice}`} icon="cafe-outline" />}
+            </InfoSection>
+          )}
 
-      {/* In-Flight Section */}
-      <View style={styles.scheduleSection}>
-        <Text style={styles.sectionTitle}>In-Flight</Text>
-        <View style={styles.containerBox}>
-          <View style={styles.subContainer}>
-            <Text style={styles.sectionDetails}>
-              Sleep on the plane after dinner. Avoid caffeine after 4 PM.
-            </Text>
-          </View>
-          <View style={styles.subContainer}>
-            <Text style={styles.sectionDetails}>
-              Use an eye mask and dim your screen to mimic night.
-            </Text>
-          </View>
-        </View>
-      </View>
+          {/* Exercise Plan Section */}
+          {recs.exercise_plan && (
+             <InfoSection title="Exercise Plan" icon="run-fast">
+              {/* Check if array exists before mapping */}
+              {recs.exercise_plan.pre_flight_routine && recs.exercise_plan.pre_flight_routine.length > 0 && (
+                <>
+                  <Text style={styles.subSectionTitle}>Pre-Flight:</Text>
+                  {recs.exercise_plan.pre_flight_routine.map((item, index) => <RecommendationItem key={`ex-pre-${index}`} text={item} />)}
+                </>
+              )}
+               {/* Check if array exists before mapping */}
+               {recs.exercise_plan.during_flight_movement && recs.exercise_plan.during_flight_movement.length > 0 && (
+                 <>
+                   <Text style={styles.subSectionTitle}>During Flight:</Text>
+                   {recs.exercise_plan.during_flight_movement.map((item, index) => <RecommendationItem key={`ex-during-${index}`} text={item} />)}
+                 </>
+               )}
+               {/* Check if array exists before mapping */}
+               {recs.exercise_plan.post_flight_activity && recs.exercise_plan.post_flight_activity.length > 0 && (
+                 <>
+                   <Text style={styles.subSectionTitle}>Post-Flight:</Text>
+                   {recs.exercise_plan.post_flight_activity.map((item, index) => <RecommendationItem key={`ex-post-${index}`} text={item} />)}
+                 </>
+               )}
+            </InfoSection>
+          )}
 
-      {/* Arrival Day Section */}
-      <View style={styles.scheduleSection}>
-        <Text style={styles.sectionTitle}>Arrival Day</Text>
-        <View style={styles.containerBox}>
-          <View style={styles.subContainer}>
-            <Text style={styles.sectionDetails}>
-              Get morning sunlight immediately after arrival to adjust to the local time.
-            </Text>
-          </View>
-          <View style={styles.subContainer}>
-            <Text style={styles.sectionDetails}>
-              Avoid screens after 7 PM.
-            </Text>
-          </View>
-        </View>
-      </View>
+          {/* Meal Plan Section */}
+          {recs.meal_plan && (
+            <InfoSection title="Meal Plan" icon="food-apple-outline">
+               {recs.meal_plan.timing_adjustment && (
+                 <>
+                   <Text style={styles.subSectionTitle}>Timing Adjustment:</Text>
+                   {recs.meal_plan.timing_adjustment.first_day_breakfast && <RecommendationItem text={`Breakfast: ${recs.meal_plan.timing_adjustment.first_day_breakfast}`} />}
+                   {recs.meal_plan.timing_adjustment.first_day_lunch && <RecommendationItem text={`Lunch: ${recs.meal_plan.timing_adjustment.first_day_lunch}`} />}
+                   {recs.meal_plan.timing_adjustment.first_day_dinner && <RecommendationItem text={`Dinner: ${recs.meal_plan.timing_adjustment.first_day_dinner}`} />}
+                 </>
+               )}
+               {/* Check if array exists before mapping */}
+               {recs.meal_plan.dietary_recommendations && recs.meal_plan.dietary_recommendations.length > 0 && (
+                 <>
+                   <Text style={styles.subSectionTitle}>Dietary Tips:</Text>
+                   {recs.meal_plan.dietary_recommendations.map((item, index) => <RecommendationItem key={`meal-diet-${index}`} text={item} />)}
+                 </>
+               )}
+            </InfoSection>
+          )}
 
-      {/* AI Assistant Section */}
-      <View style={styles.aiSection}>
-        <TextInput
-          style={styles.input}
-          placeholder="Ask about your schedule..."
-          value={question}
-          onChangeText={setQuestion}
-        />
-        <Button mode="contained" onPress={handleAskAI}>
-          Ask AI
-        </Button>
-        <Text style={styles.aiResponse}>{aiResponse}</Text>
-      </View>
+           {/* Hydration Plan Section */}
+           {recs.hydration_plan && (
+            <InfoSection title="Hydration Plan" icon="water-outline">
+               {recs.hydration_plan.daily_target_liters && <RecommendationItem text={`Daily Target: ${recs.hydration_plan.daily_target_liters}`} icon="water" />}
+               {/* Check if array exists before mapping */}
+               {recs.hydration_plan.hydration_schedule_tips && recs.hydration_plan.hydration_schedule_tips.length > 0 && (
+                 <>
+                   <Text style={styles.subSectionTitle}>Hydration Tips:</Text>
+                   {recs.hydration_plan.hydration_schedule_tips.map((item, index) => <RecommendationItem key={`hyd-tip-${index}`} text={item} />)}
+                 </>
+               )}
+             </InfoSection>
+           )}
+        </>
+      ) : (
+         // Fallback if parsing failed on backend but request was 'successful'
+         <View style={[styles.containerBox, styles.fallbackContainer]}>
+            <Ionicons name="warning-outline" size={24} color="#FFA500" />
+            <Text style={styles.fallbackText}>Received recommendations, but could not display details. Raw output might be available in server logs.</Text>
+            {recommendations.raw_crew_output && <Text style={styles.rawOutput}>{recommendations.raw_crew_output}</Text>}
+         </View>
+      )}
 
-      {/* Sync Button */}
-      <Button mode="contained" color="#1e90ff" style={styles.syncButton}>
-        Sync to Timeline
-      </Button>
+
+      {/* Removed AI Assistant Section and Sync Button */}
+
     </ScrollView>
   );
 };
@@ -101,73 +173,128 @@ const SummaryPage: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#121212',
+    backgroundColor: '#121212', // Dark background
+  },
+   scrollContent: {
     padding: 20,
+    paddingBottom: 40, // Add padding at the bottom
+  },
+  centerContent: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20, // Add padding for centered content
   },
   header: {
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 30, // More space below header
+    paddingTop: 10, // Add some padding at the top
   },
   title: {
-    fontSize: 24,
+    fontSize: 26, // Larger title
     fontWeight: 'bold',
     color: 'white',
+    textAlign: 'center',
   },
   subTitle: {
-    fontSize: 18,
-    color: '#1e90ff',
+    fontSize: 16, // Smaller subtitle
+    color: '#00AFFF', // Brighter blue
+    marginTop: 5,
+    textAlign: 'center',
   },
   scheduleSection: {
-    marginBottom: 20,
+    marginBottom: 25, // More space between sections
+  },
+   sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10, // Space between header and box
+  },
+  sectionIcon: {
+    marginRight: 8,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
+    fontSize: 20, // Larger section titles
+    fontWeight: '600', // Medium weight
     color: 'white',
+    // Removed marginLeft as icon provides spacing
+  },
+   subSectionTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#B0C4DE', // Lighter steel blue
+    marginTop: 10,
+    marginBottom: 5,
+    marginLeft: 5, // Indent subsection titles slightly
   },
   containerBox: {
-    backgroundColor: '#333',
+    backgroundColor: '#1E1E1E', // Slightly lighter dark shade
     padding: 15,
-    marginTop: 10,
-    borderRadius: 8,
+    borderRadius: 12, // More rounded corners
     borderWidth: 1,
-    borderColor: '#444',
+    borderColor: '#333', // Darker border
   },
   subContainer: {
-    backgroundColor: '#444',
-    padding: 10,
+    backgroundColor: '#282828', // Even lighter dark shade for items
+    paddingVertical: 10,
+    paddingHorizontal: 15,
     borderRadius: 8,
     marginBottom: 10,
+    flexDirection: 'row', // Align icon and text
+    alignItems: 'center',
+  },
+   itemIcon: {
+    marginRight: 10,
   },
   sectionDetails: {
+    fontSize: 15, // Slightly smaller detail text
+    color: '#E0E0E0', // Lighter gray for text
+    flex: 1, // Allow text to wrap
+    lineHeight: 22, // Improve readability
+  },
+  loadingText: {
+    marginTop: 15,
     fontSize: 16,
-    color: 'white',
-    marginLeft: 10,
+    color: '#ccc',
   },
-  aiSection: {
-    marginTop: 20,
-    backgroundColor: '#333',
-    padding: 15,
-    borderRadius: 8,
-    borderColor: '#444',
-    borderWidth: 1,
-  },
-  input: {
-    backgroundColor: '#444',
-    color: 'white',
-    padding: 10,
-    borderRadius: 8,
-    marginBottom: 10,
-  },
-  aiResponse: {
-    color: '#fff',
+   errorTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#FF6B6B',
     marginTop: 10,
+    marginBottom: 5,
+  },
+  errorText: {
     fontSize: 16,
+    color: '#FFC0CB', // Lighter pink for error details
+    textAlign: 'center',
   },
-  syncButton: {
-    marginTop: 30,
-    padding: 10,
+  noDataText: {
+    fontSize: 16,
+    color: '#ccc',
+    textAlign: 'center',
+    marginTop: 15,
+    lineHeight: 24,
   },
+   fallbackContainer: {
+    marginTop: 20,
+    alignItems: 'center',
+    padding: 20,
+    backgroundColor: 'rgba(255, 165, 0, 0.1)', // Orange tint
+    borderColor: '#FFA500',
+  },
+  fallbackText: {
+    color: '#FFA500', // Orange text
+    textAlign: 'center',
+    marginTop: 10,
+    fontSize: 15,
+  },
+   rawOutput: {
+    fontSize: 10,
+    color: '#888',
+    marginTop: 10,
+    fontFamily: 'monospace', // Use monospace for raw output if available
+  },
+  // Removed aiSection, input, aiResponse, syncButton styles
 });
 
 export default SummaryPage;
