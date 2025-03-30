@@ -2,59 +2,150 @@
 [
   {
     "id": "a1b2c3d4-e5f6-7890-1234-567890abcdef",
-    "title": "Pre-flight: Light Stretching & Breathing Exercises",
-    "startTime": "2025-03-30T15:00:00Z",
-    "endTime": "2025-03-30T15:30:00Z",
-    "description": "Engage in light stretching and breathing exercises before heading to the airport."
+    "title": "Pre-Flight Hydration",
+    "startTime": "2025-04-03T06:00:00Z",
+    "endTime": "2025-04-03T07:00:00Z",
+    "description": "Drink plenty of water to prepare for the flight."
   },
   {
-    "id": "f1e2d3c4-b5a6-0987-4321-fedcba098765",
-    "title": "Hydration: Drink water",
-    "startTime": "2025-03-30T15:30:00Z",
-    "endTime": "2025-03-30T16:30:00Z",
-    "description": "Drink plenty of water before the flight."
+    "id": "f1a2b3c4-d5e6-7890-1234-567890fedcba",
+    "title": "Pre-Flight Exercise",
+    "startTime": "2025-04-03T07:00:00Z",
+    "endTime": "2025-04-03T08:00:00Z",
+    "description": "Light to moderate exercise to reduce stress and improve sleep quality."
   },
   {
-    "id": "1a2b3c4d-e5f6-7890-1234-567890abcde1",
-    "title": "UA 2116 Departure (IAD to DFW)",
-    "startTime": "2025-03-30T21:55:00Z",
-    "endTime": "2025-03-30T22:29:00Z",
-    "description": "Flight UA 2116 from IAD to DFW. Scheduled departure at 17:55 EDT, arrival at 20:29 CDT."
+    "id": "1a2b3c4d-5e6f-7890-1234-567890abcdef",
+    "title": "Breakfast",
+    "startTime": "2025-04-03T08:00:00Z",
+    "endTime": "2025-04-03T08:30:00Z",
+    "description": "Eat a light, healthy breakfast before heading to the airport."
   },
   {
-    "id": "2a3b4c5d-f6e7-9012-3456-789012345678",
-    "title": "In-Flight: Walk & Exercises",
-    "startTime": "2025-03-30T22:55:00Z",
-    "endTime": "2025-03-31T01:30:00Z",
-    "description": "Get up and walk around the cabin every hour and do in-seat exercises."
+    "id": "2b3c4d5e-6f7a-8901-2345-67890abcdef0",
+    "title": "Travel to Airport",
+    "startTime": "2025-04-03T08:30:00Z",
+    "endTime": "2025-04-03T09:30:00Z",
+    "description": "Travel to IAD airport."
   },
   {
-    "id": "3a4b5c6d-01f2-3456-7890-1234567890ab",
-    "title": "Post-Flight: Sunlight & Walk",
-    "startTime": "2025-03-31T01:30:00Z",
-    "endTime": "2025-03-31T02:30:00Z",
-    "description": "Go for a walk outdoors upon arrival in DFW to get sunlight."
+    "id": "3c4d5e6f-7a8b-9012-3456-7890abcdef01",
+    "title": "Check-in and Security",
+    "startTime": "2025-04-03T09:30:00Z",
+    "endTime": "2025-04-03T10:30:00Z",
+    "description": "Complete check-in and security procedures."
   },
   {
-    "id": "4a5b6c7d-12e3-4567-8901-234567890abc",
-    "title": "Dinner (DFW time)",
-    "startTime": "2025-03-31T02:00:00Z",
-    "endTime": "2025-03-31T03:00:00Z",
-    "description": "Eat dinner at your usual dinner time in DFW."
+    "id": "4d5e6f7a-8b9c-0123-4567-890abcdef012",
+    "title": "Boarding - IAD to DXB",
+    "startTime": "2025-04-03T10:30:00Z",
+    "endTime": "2025-04-03T10:55:00Z",
+    "description": "Boarding the flight EK232 from IAD to DXB."
   },
   {
-    "id": "5a6b7c8d-23f4-5678-9012-34567890abcd",
-    "title": "Hydration: Drink Water",
-    "startTime": "2025-03-31T03:00:00Z",
-    "endTime": "2025-03-31T07:00:00Z",
-    "description": "Continue to hydrate well upon arrival."
+    "id": "5e6f7a8b-9c01-2345-6789-0abcdef0123",
+    "title": "Flight EK232 - IAD to DXB",
+    "startTime": "2025-04-03T14:55:00Z",
+    "endTime": "2025-04-04T00:05:00Z",
+    "description": "Flight EK232 from IAD to DXB. Remember to drink water, walk around, and do stretches during the flight."
   },
   {
-    "id": "6a7b8c9d-34e5-6789-0123-4567890abcde",
-    "title": "Bedtime (DFW time)",
-    "startTime": "2025-03-31T03:00:00Z",
-    "endTime": "2025-03-31T11:00:00Z",
-    "description": "Aim to go to bed around your usual bedtime in DFW."
+    "id": "6f7a8b9c-0123-4567-890a-bcdef0123456",
+    "title": "In-Flight Movement",
+    "startTime": "2025-04-03T15:55:00Z",
+    "endTime": "2025-04-03T16:15:00Z",
+    "description": "Get up and walk around the cabin. Perform stretches."
+  },
+    {
+    "id": "7a8b9c01-2345-6789-0abc-def01234567",
+    "title": "In-Flight Movement",
+    "startTime": "2025-04-03T17:55:00Z",
+    "endTime": "2025-04-03T18:15:00Z",
+    "description": "Get up and walk around the cabin. Perform stretches."
+  },
+      {
+    "id": "8b9c0123-4567-890a-bcde-f01234567890",
+    "title": "In-Flight Movement",
+    "startTime": "2025-04-03T19:55:00Z",
+    "endTime": "2025-04-03T20:15:00Z",
+    "description": "Get up and walk around the cabin. Perform stretches."
+  },
+  {
+    "id": "9c012345-6789-0abc-def0-1234567890ab",
+    "title": "Arrive DXB",
+    "startTime": "2025-04-04T00:05:00Z",
+    "endTime": "2025-04-04T00:30:00Z",
+    "description": "Arrival at DXB airport. Adjust watch to Dubai time."
+  },
+  {
+    "id": "a0123456-7890-bcde-f012-34567890abcd",
+    "title": "DXB Airport - Clear Customs/Immigration",
+    "startTime": "2025-04-04T00:30:00Z",
+    "endTime": "2025-04-04T01:30:00Z",
+    "description": "Complete customs and immigration procedures at DXB."
+  },
+  {
+    "id": "b1234567-890a-bcde-f012-34567890abce",
+    "title": "DXB - Transportation to Accommodation",
+    "startTime": "2025-04-04T01:30:00Z",
+    "endTime": "2025-04-04T02:30:00Z",
+    "description": "Transfer from DXB to accommodation."
+  },
+  {
+    "id": "c2345678-90ab-cdef-0123-4567890abcdf",
+    "title": "Check-in and Settle",
+    "startTime": "2025-04-04T02:30:00Z",
+    "endTime": "2025-04-04T03:30:00Z",
+    "description": "Check into accommodation and unpack."
+  },
+    {
+    "id": "d3456789-0abc-def0-1234-567890abcde0",
+    "title": "First Meal (Breakfast)",
+    "startTime": "2025-04-04T08:00:00Z",
+    "endTime": "2025-04-04T08:30:00Z",
+    "description": "Eat breakfast at the appropriate time according to Dubai time."
+  },
+  {
+    "id": "e4567890-bcde-f012-3456-7890abcdef01",
+    "title": "Post-Flight Activity & Sunlight Exposure",
+    "startTime": "2025-04-04T08:30:00Z",
+    "endTime": "2025-04-04T10:00:00Z",
+    "description": "Light physical activity and explore surroundings with sunlight exposure to regulate circadian rhythm."
+  },
+      {
+    "id": "f567890a-cdef-0123-4567-890abcdef012",
+    "title": "First Meal (Lunch)",
+    "startTime": "2025-04-04T12:00:00Z",
+    "endTime": "2025-04-04T12:30:00Z",
+    "description": "Eat lunch at the appropriate time according to Dubai time."
+  },
+  {
+    "id": "067890ab-cdef-0123-4567-890abcdef0123",
+    "title": "Hydration Check",
+    "startTime": "2025-04-04T14:00:00Z",
+    "endTime": "2025-04-04T14:30:00Z",
+    "description": "Ensure you have consumed enough water."
+  },
+   {
+    "id": "17890abc-def0-1234-5678-90abcdef01234",
+    "title": "First Meal (Dinner)",
+    "startTime": "2025-04-04T19:00:00Z",
+    "endTime": "2025-04-04T19:30:00Z",
+    "description": "Eat dinner at the appropriate time according to Dubai time."
+  },
+  {
+    "id": "2890bcde-f012-3456-7890-abcdef012345",
+    "title": "Evening Relaxation & Bedtime Preparation",
+    "startTime": "2025-04-04T20:00:00Z",
+    "endTime": "2025-04-04T22:00:00Z",
+    "description": "Prepare for bed, avoid caffeine and alcohol."
+  },
+  {
+    "id": "390abcdf-0123-4567-890a-bcdef0123456",
+    "title": "Sleep",
+    "startTime": "2025-04-04T22:00:00Z",
+    "endTime": "2025-04-05T06:00:00Z",
+    "description": "Aim to sleep according to Dubai time."
   }
 ]
 ```
