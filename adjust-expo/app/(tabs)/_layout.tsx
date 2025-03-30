@@ -54,7 +54,7 @@ export default function TabLayout() {
         options={{
           title: 'Health',
           tabBarIcon: ({ size, color }) => (
-            <MaterialCommunityIcons name="notebook" size={size} color={color} />
+            <MaterialCommunityIcons name="heart-pulse" size={size} color={color} /> // Changed icon
           ),
         }}
       />

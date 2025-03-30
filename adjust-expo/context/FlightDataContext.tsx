@@ -1,5 +1,6 @@
-import React, { createContext, useState, useContext, ReactNode } from 'react';
+import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
 import { Alert } from 'react-native';
+import { scheduleNotificationsForEvents, CalendarEvent } from '../services/notificationService'; // Import notification service
 
 // Define the structure of the flight data we expect
 // Based on the backend response structure
@@ -146,6 +147,50 @@ export const FlightDataProvider: React.FC<FlightDataProviderProps> = ({ children
       return false; // Indicate failure
     }
   };
+
+  // Effect to fetch calendar and schedule notifications after flight data is ready
+  useEffect(() => {
+    if (flightData?.success && flightData.flight_details) {
+      console.log('[FlightDataContext] Flight data received, attempting to fetch schedule and schedule notifications...');
+
+      // Delay slightly to allow backend to generate calendar_events.json
+      const timer = setTimeout(async () => {
+        try {
+          console.log(`[FlightDataContext] Fetching calendar events from: ${API_BASE_URL}/api/calendar/events`);
+          const calendarResponse = await fetch(`${API_BASE_URL}/api/calendar/events`);
+          if (!calendarResponse.ok) {
+            // It's possible the file isn't ready yet, don't treat as hard error
+            if (calendarResponse.status === 404 || calendarResponse.status === 500) {
+                 console.warn(`[FlightDataContext] Calendar events not ready yet (Status: ${calendarResponse.status}). Will retry or user can refresh.`);
+                 return; // Exit without scheduling
+            }
+            throw new Error(`HTTP error fetching calendar! status: ${calendarResponse.status}`);
+          }
+          const calendarEvents: CalendarEvent[] = await calendarResponse.json();
+
+          // Basic validation of the fetched data
+          if (Array.isArray(calendarEvents)) {
+             if (calendarEvents.length > 0) {
+                console.log(`[FlightDataContext] Received ${calendarEvents.length} calendar events. Scheduling notifications...`);
+                await scheduleNotificationsForEvents(calendarEvents);
+             } else {
+                console.log('[FlightDataContext] Received empty calendar events array from backend.');
+             }
+          } else {
+             console.warn('[FlightDataContext] Received non-array data for calendar events.');
+          }
+
+        } catch (err: any) {
+          console.error('[FlightDataContext] Error fetching calendar events or scheduling notifications:', err);
+          // Optionally alert the user or log this more visibly
+          // Alert.alert('Notification Error', 'Could not fetch schedule to set reminders.');
+        }
+      }, 5000); // 5-second delay (adjust as needed, maybe make it configurable or use polling)
+
+      // Cleanup function for the timeout if component unmounts or flightData changes again
+      return () => clearTimeout(timer);
+    }
+  }, [flightData]); // Re-run this effect when flightData changes
 
   return (
     <FlightDataContext.Provider value={{

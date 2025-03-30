@@ -2,101 +2,73 @@
 [
   {
     "id": "a1b2c3d4-e5f6-7890-1234-567890abcdef",
-    "title": "Pre-flight Meal (High Protein, Low Fat)",
-    "startTime": "2025-03-29T18:00:00Z",
-    "endTime": "2025-03-29T19:00:00Z",
-    "description": "Consume a high-protein, low-fat meal to prepare for the flight. Avoid heavy, greasy foods."
+    "title": "Wake Up",
+    "startTime": "2025-03-30T07:00:00Z",
+    "endTime": "2025-03-30T07:30:00Z",
+    "description": "Start the day with a healthy breakfast and morning routine."
   },
   {
-    "id": "f1e2d3c4-b5a6-0987-4321-fedcba098765",
-    "title": "Travel to Airport",
-    "startTime": "2025-03-29T19:00:00Z",
-    "endTime": "2025-03-29T19:45:00Z",
-    "description": "Travel to the airport, allowing ample time for check-in and security."
-  },
-  {
-    "id": "1a2b3c4d-e5f6-7890-1234-567890abcdef",
-    "title": "Check-in and Security",
-    "startTime": "2025-03-29T19:45:00Z",
-    "endTime": "2025-03-29T20:15:00Z",
-    "description": "Complete check-in procedures and proceed through security."
-  },
-  {
-    "id": "2a3b4c5d-f6e7-8901-2345-678901234567",
-    "title": "Flight AI103 Departure (DEL to IAD)",
-    "startTime": "2025-03-29T20:25:00Z",
-    "endTime": "2025-03-30T11:15:00Z",
-    "description": "AI103 flight departure from Delhi (DEL) to Washington, D.C. (IAD)."
-  },
-  {
-    "id": "3a4b5c6d-0f1e-2a3b-4c5d-6e7f8a9b0c1d",
-    "title": "In-Flight Hydration",
-    "startTime": "2025-03-29T21:00:00Z",
-    "endTime": "2025-03-30T09:00:00Z",
-    "description": "Stay hydrated by drinking water throughout the flight. Avoid excessive alcohol and caffeine."
-  },
-  {
-    "id": "4a5b6c7d-1f2e-3a4b-5c6d-7e8f9a0b1c2d",
-    "title": "In-Flight Exercise (every 2 hours)",
-    "startTime": "2025-03-29T22:00:00Z",
-    "endTime": "2025-03-29T22:10:00Z",
-    "description": "Perform light exercises in your seat or in the aisle (if space permits) every two hours to improve circulation."
-  },
-    {
-    "id": "5a6b7c8d-2f3e-4a5b-6c7d-8e9f0a1b2c3d",
-    "title": "In-Flight Meal (Light and Balanced)",
-    "startTime": "2025-03-30T01:00:00Z",
-    "endTime": "2025-03-30T02:00:00Z",
-    "description": "Consume a light and balanced in-flight meal."
-  },
-    {
-    "id": "6a7b8c9d-3f4e-5a6b-7c8d-9e0f1a2b3c4d",
-    "title": "Sleep (attempt)",
-    "startTime": "2025-03-30T02:00:00Z",
+    "id": "f1a2b3c4-d5e6-7890-1234-567890fedcba",
+    "title": "Breakfast",
+    "startTime": "2025-03-30T07:30:00Z",
     "endTime": "2025-03-30T08:00:00Z",
-    "description": "Attempt to sleep during the flight to mitigate jet lag. Use earplugs, eye mask, etc."
+    "description": "Enjoy a nutritious breakfast."
   },
   {
-    "id": "7a8b9c0d-4f5e-6a7b-8c9d-0e1f2a3b4c5e",
-    "title": "Arrival at IAD & Airport procedures",
-    "startTime": "2025-03-30T11:15:00Z",
+    "id": "d1e2f3a4-b5c6-7890-1234-567890abcdef01",
+    "title": "Morning Exercise",
+    "startTime": "2025-03-30T08:30:00Z",
+    "endTime": "2025-03-30T09:30:00Z",
+    "description": "Engage in moderate exercise."
+  },
+  {
+    "id": "c1b2a3f4-e5d6-7890-1234-567890123456",
+    "title": "Lunch",
+    "startTime": "2025-03-30T12:00:00Z",
     "endTime": "2025-03-30T13:00:00Z",
-    "description": "Arrival at Washington Dulles International Airport (IAD), including customs and immigration."
+    "description": "Have a balanced lunch."
+  },
+  {
+    "id": "b1a2c3d4-e5f6-7890-1234-567890fedcba",
+    "title": "Prepare for Departure",
+    "startTime": "2025-03-30T18:00:00Z",
+    "endTime": "2025-03-30T19:00:00Z",
+    "description": "Pack and get ready for the flight."
   },
     {
-    "id": "8a9b0c1d-5f6e-7a8b-9c0d-1e2f3a4b5c6f",
-    "title": "Post-flight Light Meal & Hydration",
-    "startTime": "2025-03-30T13:00:00Z",
-    "endTime": "2025-03-30T14:00:00Z",
-    "description": "Consume a light meal and rehydrate after the flight to facilitate recovery."
-  },
-  {
-    "id": "9a0b1c2d-6f7e-8a9b-0c1d-2f3e4a5b6c7f",
-    "title": "Gentle Walk/Stretch",
-    "startTime": "2025-03-30T14:00:00Z",
-    "endTime": "2025-03-30T14:30:00Z",
-    "description": "Take a gentle walk or perform light stretching exercises to improve circulation and reduce stiffness."
-  },
-  {
-    "id": "0a1b2c3d-7f8e-9a0b-1c2d-3e4f5a6b7c8f",
-    "title": "Adapt to local time - Outdoor Exposure",
-    "startTime": "2025-03-30T15:00:00Z",
-    "endTime": "2025-03-30T16:00:00Z",
-    "description": "Spend some time outdoors in daylight to help adjust to the new time zone."
-  },
-  {
-    "id": "1a2b3c4d-8f9e-0a1b-2c3d-4e5f6a7b8c9f",
-    "title": "Dinner (early, light)",
+    "id": "123e4567-e89b-12d3-a456-426614174000",
+    "title": "Dinner",
     "startTime": "2025-03-30T19:00:00Z",
     "endTime": "2025-03-30T20:00:00Z",
-    "description": "Have an early, light dinner to aid in adjusting to the new time zone."
+    "description": "Have a light dinner before heading to the airport."
   },
   {
-    "id": "2a3b4c5d-9f0e-1a2b-3c4d-5e6f7a8b9c0f",
-    "title": "Bedtime Routine (sleep as soon as possible)",
-    "startTime": "2025-03-30T21:00:00Z",
-    "endTime": "2025-03-30T22:00:00Z",
-    "description": "Follow a relaxing bedtime routine to prepare for sleep as soon as possible, trying to adapt to local time."
+    "id": "987a6543-c2b1-0fed-cba9-876543210abc",
+    "title": "Travel to Airport",
+    "startTime": "2025-03-30T20:00:00Z",
+    "endTime": "2025-03-30T21:00:00Z",
+    "description": "Travel to the airport for your flight."
+  },
+  {
+    "id": "234e5678-e90b-23d4-b567-537725285111",
+    "title": "UA 2116 Departure (IAD)",
+    "startTime": "2025-03-30T21:55:00Z",
+    "endTime": "2025-03-31T01:29:00Z",
+    "description": "Flight from IAD to DFW."
+  },
+    {
+    "id": "545a9123-d80c-0fed-bac8-987654321def",
+    "title": "Arrival (DFW)",
+    "startTime": "2025-03-31T01:29:00Z",
+    "endTime": "2025-03-31T02:00:00Z",
+    "description": "Arrival at DFW Airport."
+  },
+  {
+    "id": "111a222b-333c-444d-555e-666f77788889",
+    "title": "Recommended Bedtime",
+    "startTime": "2025-03-31T02:00:00Z",
+    "endTime": "2025-03-31T08:00:00Z",
+    "description": "Prioritize sleep for optimal health and recovery."
   }
 ]
 ```
