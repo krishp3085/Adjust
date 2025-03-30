@@ -16,7 +16,7 @@ from crewai.utilities.events import (
 )
 from crewai.utilities.events.base_event_listener import BaseEventListener
 import json
-from datetime import datetime
+from datetime import datetime, timedelta # Import timedelta
 from google import genai
 import pytz # Keep pytz if needed elsewhere, otherwise remove if only used in tester.py
 import re # Import regex for parsing
@@ -503,6 +503,99 @@ def flight_recommendations_endpoint():
         return jsonify({
             'error': f"An unexpected server error occurred: {str(e)}"
         }), 500
+
+@app.route('/api/health-data', methods=['POST'])
+def receive_health_data():
+    """Receives health data from the frontend and prints it."""
+    try:
+        health_data = request.json
+        if not health_data:
+            print_internal_status('error', "❌ Received empty health data payload.")
+            return jsonify({'error': 'No data received'}), 400
+
+        print_internal_status('info', "🩺 Received health data from frontend.")
+
+        # Define the file path in the root directory
+        file_path = 'health_data.json'
+        print_internal_status('info', f"💾 Saving health data to {file_path}...")
+
+        # --- Save Data ---
+        try:
+            with open(file_path, 'w') as f:
+                json.dump(health_data, f, indent=2)
+            print_internal_status('success', f"✅ Successfully saved health data to {file_path}")
+        except IOError as e:
+            print_internal_status('error', f"❌ Error saving health data to file: {str(e)}")
+            # Still try to analyze if data is in memory, but return error about saving
+            return jsonify({'error': f"Failed to save health data to file: {str(e)}", 'analysis': None}), 500
+
+        # --- Analyze Data ---
+        print_internal_status('info', "📊 Analyzing saved health data...")
+        average_hr = None
+        total_sleep_str = "N/A"
+
+        try:
+            # Calculate Average Heart Rate
+            total_hr_bpm = 0
+            hr_sample_count = 0
+            if 'heartRateRecords' in health_data and isinstance(health_data['heartRateRecords'], list):
+                for record in health_data['heartRateRecords']:
+                    if 'samples' in record and isinstance(record['samples'], list):
+                        for sample in record['samples']:
+                            if 'beatsPerMinute' in sample:
+                                total_hr_bpm += sample['beatsPerMinute']
+                                hr_sample_count += 1
+            if hr_sample_count > 0:
+                average_hr = total_hr_bpm / hr_sample_count
+                print_internal_status('info', f"Calculated Average HR: {average_hr:.2f} bpm")
+            else:
+                 print_internal_status('warning', "No heart rate samples found for averaging.")
+
+
+            # Calculate Total Sleep Time
+            total_sleep_duration = timedelta(0)
+            if 'sleepRecords' in health_data and isinstance(health_data['sleepRecords'], list):
+                for record in health_data['sleepRecords']:
+                    try:
+                        # Parse ISO strings, removing 'Z' for naive datetime conversion
+                        start_time_str = record.get('startTime', '').replace('Z', '')
+                        end_time_str = record.get('endTime', '').replace('Z', '')
+                        if start_time_str and end_time_str:
+                            start_dt = datetime.fromisoformat(start_time_str)
+                            end_dt = datetime.fromisoformat(end_time_str)
+                            total_sleep_duration += (end_dt - start_dt)
+                    except Exception as e:
+                        print_internal_status('warning', f"Could not parse sleep record times: {e}")
+
+            if total_sleep_duration.total_seconds() > 0:
+                total_seconds = int(total_sleep_duration.total_seconds())
+                hours = total_seconds // 3600
+                minutes = (total_seconds % 3600) // 60
+                total_sleep_str = f"{hours}h {minutes}m"
+                print_internal_status('info', f"Calculated Total Sleep: {total_sleep_str}")
+            else:
+                 print_internal_status('warning', "No sleep duration calculated.")
+
+            # Return success with analysis results
+            return jsonify({
+                'message': f'Health data received, saved, and analyzed.',
+                'averageHeartRate': average_hr,
+                'totalSleepTime': total_sleep_str
+            }), 200
+
+        except Exception as e:
+             print_internal_status('error', f"❌ Error during health data analysis: {str(e)}")
+             # Return success for receiving/saving, but indicate analysis error
+             return jsonify({
+                 'message': f'Health data received and saved, but analysis failed.',
+                 'error_analysis': str(e),
+                 'averageHeartRate': None,
+                 'totalSleepTime': None
+             }), 500 # Use 500 to indicate partial failure
+
+    except Exception as e:
+        print_internal_status('error', f"❌ Error processing health data: {str(e)}")
+        return jsonify({'error': f"An unexpected server error occurred: {str(e)}"}), 500
 
 @app.route('/api/health-check', methods=['GET'])
 def health_check():

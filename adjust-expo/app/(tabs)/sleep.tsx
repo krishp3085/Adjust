@@ -10,7 +10,6 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Stack } from 'expo-router';
-import RadialGradientView from '../../components/radialgradient';
 
 const { height, width } = Dimensions.get('window');
 
@@ -158,7 +157,6 @@ export default function Sleep() {
             opacity: opacityAnim,
           }]}
         >
-          <RadialGradientView colors={outerColors} size={300} />
         </Animated.View>
 
         <View style={styles.timelineContainer}>
