@@ -1,110 +1,114 @@
-import { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, ActivityIndicator, Image } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, ActivityIndicator, Image, Keyboard, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from 'expo-router'; // Use useRouter for navigation
+import { useFlightData } from '../../context/FlightDataContext'; // Import the context hook
 
 export default function BoardingScreen() {
+  // Local state for inputs ONLY
+  const [carrierCode, setCarrierCode] = useState('');
   const [flightNumber, setFlightNumber] = useState('');
   const [departureDate, setDepartureDate] = useState('');
-  const [flightDetails, setFlightDetails] = useState<any>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
 
-  const fetchFlightDetails = async () => {
-    if (!flightNumber || !departureDate) {
-      setError('Please enter both flight number and departure date.');
+  // Get context functions and state
+  const { fetchFlightData, isLoading, error } = useFlightData();
+  const router = useRouter(); // Use router for navigation
+
+  const handleFetchAndNavigate = async () => {
+    Keyboard.dismiss(); // Dismiss keyboard before fetching
+
+    // Basic validation (context also validates, but good to have here too)
+    if (!carrierCode || !flightNumber || !departureDate) {
+      Alert.alert('Missing Information', 'Please enter Carrier Code, Flight Number, and Departure Date.');
       return;
     }
+     if (!/^\d{4}-\d{2}-\d{2}$/.test(departureDate)) {
+        Alert.alert('Invalid Date Format', 'Please enter the date in YYYY-MM-DD format.');
+        return;
+    }
 
-    setLoading(true);
-    setError('');
-    try {
-      // Replace with the actual API URL and logic
-      const response = await fetch(`https://api.example.com/flight?flightNumber=${flightNumber}&departureDate=${departureDate}`);
-      const data = await response.json();
-      
-      if (response.ok) {
-        setFlightDetails(data);
-      } else {
-        setError('Failed to fetch flight details.');
-      }
-    } catch (err) {
-      console.error('Error fetching flight details:', err);
-      setError('An error occurred while fetching flight details.');
-    } finally {
-      setLoading(false);
+
+    const success = await fetchFlightData(carrierCode.toUpperCase(), flightNumber, departureDate); // Convert carrier code to uppercase
+    if (success) {
+      // Navigate to the summary tab after successful fetch
+      router.push('/(tabs)/summary'); // Use router.push for tab navigation
+    } else {
+      // Error is handled by displaying the 'error' state from context below
+      // Optionally show an alert here too if desired
+      // Alert.alert('Error', 'Failed to fetch flight data. Please check details and try again.');
     }
   };
 
   return (
     <View style={styles.container}>
       <Image
-        source={{ uri: 'https://images.unsplash.com/photo-1436491865332-7a61a109cc05' }}
+        source={{ uri: 'https://images.unsplash.com/photo-1436491865332-7a61a109cc05' }} // Keep background image
         style={[StyleSheet.absoluteFillObject, { opacity: 0.2 }]}
       />
       <LinearGradient colors={['rgba(0,0,0,0.7)', 'rgba(0,0,0,0.9)']} style={StyleSheet.absoluteFillObject} />
+
       <View style={styles.content}>
-        <Text style={styles.title}>Flight Information</Text>
-        
+        <Text style={styles.title}>Enter Flight Information</Text>
+
         <TextInput
           style={styles.input}
-          placeholder="Enter Flight Number"
+          placeholder="Carrier Code (e.g., UA, AA)"
+          placeholderTextColor="#888"
+          value={carrierCode}
+          onChangeText={setCarrierCode}
+          autoCapitalize="characters" // Helps with carrier codes
+          maxLength={2} // Carrier codes are usually 2 letters
+        />
+
+        <TextInput
+          style={styles.input}
+          placeholder="Flight Number (e.g., 1234)"
           placeholderTextColor="#888"
           value={flightNumber}
           onChangeText={setFlightNumber}
+          keyboardType="numeric" // Flight numbers are typically numeric
         />
-        
+
         <TextInput
           style={styles.input}
-          placeholder="Enter Departure Date (YYYY-MM-DD)"
+          placeholder="Departure Date (YYYY-MM-DD)"
           placeholderTextColor="#888"
           value={departureDate}
           onChangeText={setDepartureDate}
+          maxLength={10} // YYYY-MM-DD
         />
 
-        {loading ? (
+        {/* Display loading indicator based on context state */}
+        {isLoading ? (
           <ActivityIndicator size="large" color="#007AFF" style={styles.loading} />
         ) : (
           <TouchableOpacity
             style={styles.button}
-            onPress={fetchFlightDetails}
+            onPress={handleFetchAndNavigate} // Use the new handler
           >
-            <Ionicons name="airplane" size={24} color="#fff" style={styles.buttonIcon} />
-            <Text style={styles.buttonText}>Fetch Flight Details</Text>
+            <Ionicons name="paper-plane-outline" size={24} color="#fff" style={styles.buttonIcon} />
+            <Text style={styles.buttonText}>Get AI Travel Plan</Text>
           </TouchableOpacity>
         )}
 
-        {error ? (
+        {/* Display error message based on context state */}
+        {error && !isLoading ? ( // Only show error if not loading
           <Text style={styles.errorText}>{error}</Text>
-        ) : (
-          flightDetails && (
-            <View style={styles.resultContainer}>
-              <Text style={styles.resultTitle}>Flight Details</Text>
-              <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>Flight Number:</Text>
-                <Text style={styles.detailValue}>{flightDetails.flightNumber}</Text>
-              </View>
-              <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>Departure Date:</Text>
-                <Text style={styles.detailValue}>{flightDetails.departureDate}</Text>
-              </View>
-              <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>Destination:</Text>
-                <Text style={styles.detailValue}>{flightDetails.destination}</Text>
-              </View>
-              {/* Add more flight details as needed */}
-            </View>
-          )
-        )}
+        ) : null}
+
+        {/* Removed the results display section from here */}
+
       </View>
     </View>
   );
 }
 
+// Keep existing styles, maybe adjust input width/margins if needed
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#f5f5f5', // Fallback background
   },
   content: {
     padding: 20,
@@ -116,25 +120,33 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: 'bold',
     color: '#fff',
-    marginBottom: 20,
+    marginBottom: 30, // Increased margin
     textAlign: 'center',
   },
   input: {
-    width: '80%',
-    padding: 12,
+    width: '90%', // Slightly wider
+    padding: 15, // More padding
     backgroundColor: '#333',
     color: '#fff',
     borderRadius: 8,
-    marginBottom: 20,
+    marginBottom: 15, // Adjusted margin
     fontSize: 16,
+    borderWidth: 1,
+    borderColor: '#555',
   },
   button: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#007AFF',
-    padding: 16,
+    paddingVertical: 16,
+    paddingHorizontal: 30, // Wider padding
     borderRadius: 12,
     marginVertical: 20,
+    shadowColor: '#000', // Add shadow for depth
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 5,
   },
   buttonText: {
     color: '#fff',
@@ -146,46 +158,18 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   loading: {
-    marginTop: 20,
+    marginVertical: 46, // Match button vertical space roughly
   },
   errorText: {
-    color: '#dc3545',
-    fontSize: 16,
-    marginTop: 12,
+    color: '#FF6B6B', // Brighter red for dark background
+    backgroundColor: 'rgba(255, 107, 107, 0.1)', // Subtle background
+    paddingHorizontal: 15,
+    paddingVertical: 10,
+    borderRadius: 8,
+    fontSize: 15, // Slightly smaller
+    marginTop: 15,
     textAlign: 'center',
+    maxWidth: '90%',
   },
-  resultContainer: {
-    backgroundColor: '#fff',
-    padding: 20,
-    borderRadius: 12,
-    width: '100%',
-    marginTop: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 5,
-  },
-  resultTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 16,
-    color: '#333',
-  },
-  detailRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-  },
-  detailLabel: {
-    fontSize: 16,
-    color: '#666',
-  },
-  detailValue: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
-  },
+  // Removed resultContainer styles as results are shown on summary page
 });

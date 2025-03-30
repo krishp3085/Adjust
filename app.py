@@ -19,6 +19,9 @@ import json
 from datetime import datetime
 from google import genai
 import pytz # Keep pytz if needed elsewhere, otherwise remove if only used in tester.py
+import re # Import regex for parsing
+from pydantic import BaseModel, Field # Import Pydantic
+from typing import List, Optional # For type hinting in Pydantic models
 
 app = Flask(__name__)
 CORS(app)
@@ -82,20 +85,17 @@ def generate_and_print_summary(action_description):
 
     prompt = f"""
     Based on the latest action: "{action_description}", 
-    provide a very concise, user-friendly status update (max 10 words) 
-    that reflects *what* the system is currently doing or has just finished.
+    Provide a very concise, user-friendly status update (max 10 words) 
+    that reflects *what* the system is currently doing or has just finished, based on the latest action. 
+    **Use varied phrasing** for similar actions to make the updates feel less repetitive.
 
-    Examples:
-    - Input: "Travel Assistant is generating travel plan..." Output: "Creating your personalized travel plan..."
-    - Input: "Health Monitor is compiling health recommendations..." Output: "Gathering health tips for your trip..."
-    - Input: "Travel Assistant has finished generating the travel plan" Output: "Travel plan generated, moving to health tips."
-    - Input: "Health Monitor has finished compiling health recommendations" Output: "Health recommendations compiled."
-    - Input: "Starting crew execution..." Output: "Starting your travel analysis..."
-    - Input: "Task completed successfully!" Output: "Completed a step in the analysis."
-    - Input: "All analyses completed! Preparing final recommendations..." Output: "Finalizing your travel recommendations..."
+    Examples of varied phrasing for similar actions:
+    - Input: "Health Monitor is compiling health recommendations..." -> Output: "Gathering health tips for your trip..." OR "Compiling health recommendations now..." OR "Working on your health advice..."
+    - Input: "Task completed successfully!" -> Output: "Completed a step in the analysis." OR "Analysis step finished." OR "Moving to the next stage."
+    - Input: "All analyses completed! Preparing final recommendations..." -> Output: "Finalizing your travel recommendations..." OR "Putting together the final plan..." OR "Almost done, preparing summary..."
 
     Latest Logged Action: "{action_description}"
-    Concise Status Update:
+    Concise and Varied Status Update:
     """
     try:
         response = gemini_client.models.generate_content(model='gemini-2.0-flash-lite', contents=prompt)
@@ -281,6 +281,41 @@ def get_flight_details(carrier_code, flight_number, departure_date):
         return None, f"Unexpected error fetching flight details: {str(e)}"
 # --- End Amadeus Logic ---
 
+# --- Pydantic Models for Structured Output ---
+
+class SleepSchedule(BaseModel):
+    adjustment_period_advice: Optional[str] = Field(..., description="Advice on adjusting sleep before/during/after the flight.")
+    recommended_bedtime_local: Optional[str] = Field(..., description="Recommended bedtime in the destination's local time (e.g., '10:00 PM Tokyo Time').")
+    recommended_wake_time_local: Optional[str] = Field(..., description="Recommended wake-up time in the destination's local time (e.g., '7:00 AM Tokyo Time').")
+    nap_strategy_advice: Optional[str] = Field(..., description="Advice on napping strategy.")
+
+class ExercisePlan(BaseModel):
+    pre_flight_routine: Optional[List[str]] = Field(..., description="List of recommended exercises/activities before the flight.")
+    during_flight_movement: Optional[List[str]] = Field(..., description="List of recommended exercises/activities during the flight.")
+    post_flight_activity: Optional[List[str]] = Field(..., description="List of recommended exercises/activities after arrival.")
+
+class MealTiming(BaseModel):
+    first_day_breakfast: Optional[str] = Field(..., description="Advice on timing for breakfast on the first day at the destination.")
+    first_day_lunch: Optional[str] = Field(..., description="Advice on timing for lunch on the first day at the destination.")
+    first_day_dinner: Optional[str] = Field(..., description="Advice on timing for dinner on the first day at the destination.")
+
+class MealPlan(BaseModel):
+    timing_adjustment: Optional[MealTiming] = Field(..., description="Meal timing advice for the destination.")
+    dietary_recommendations: Optional[List[str]] = Field(..., description="List of dietary suggestions for travel.")
+
+class HydrationPlan(BaseModel):
+    daily_target_liters: Optional[str] = Field(..., description="Recommended daily water intake target (e.g., '2-3 liters').")
+    hydration_schedule_tips: Optional[List[str]] = Field(..., description="List of hydration reminders/tips.")
+
+class HealthRecommendations(BaseModel):
+    """Overall health recommendations structure."""
+    sleep_schedule: Optional[SleepSchedule] = Field(..., description="Detailed sleep schedule recommendations.")
+    exercise_plan: Optional[ExercisePlan] = Field(..., description="Detailed exercise plan recommendations.")
+    meal_plan: Optional[MealPlan] = Field(..., description="Detailed meal plan recommendations.")
+    hydration_plan: Optional[HydrationPlan] = Field(..., description="Detailed hydration plan recommendations.")
+
+# --- End Pydantic Models ---
+
 
 def get_crew_llm():
     return crew_llm
@@ -356,45 +391,20 @@ def create_travel_crew(flight_details_json):
 
     health_recommendations = Task(
         description=f"""
-        Based on the provided flight details, generate personalized health recommendations covering sleep, exercise, meals, and hydration for the trip to {destination_code}.
+        Based on the provided flight details, generate personalized health recommendations covering sleep, exercise, meals, and hydration for the trip to {destination_code}. Ensure all fields in the required output structure are populated with relevant advice.
 
         **Full Flight Context:**
         ```json
         {flight_details_json}
         ```
-
-        Format your response strictly as a JSON object with the following structure:
-        {{
-            "sleep_schedule": {{
-                "adjustment_period_advice": "string",
-                "recommended_bedtime_local": "string (e.g., '10:00 PM Tokyo Time')",
-                "recommended_wake_time_local": "string (e.g., '7:00 AM Tokyo Time')",
-                "nap_strategy_advice": "string"
-            }},
-            "exercise_plan": {{
-                "pre_flight_routine": [list of exercises/activities],
-                "during_flight_movement": [list of exercises/activities],
-                "post_flight_activity": [list of exercises/activities]
-            }},
-            "meal_plan": {{
-                "timing_adjustment": {{
-                    "first_day_breakfast": "string (advice on timing)",
-                    "first_day_lunch": "string (advice on timing)",
-                    "first_day_dinner": "string (advice on timing)"
-                }},
-                "dietary_recommendations": [list of dietary suggestions for travel]
-            }},
-            "hydration_plan": {{
-                "daily_target_liters": "string (e.g., '2-3 liters')",
-                "hydration_schedule_tips": [list of hydration reminders/tips]
-            }}
-        }}
         """,
         agent=health_monitor,
-        expected_output="JSON object containing personalized health recommendations (sleep, exercise, meals, hydration) based on the provided flight context."
+        expected_output="A Pydantic object conforming to the HealthRecommendations model, containing personalized health advice.",
+        output_pydantic=HealthRecommendations # Specify the Pydantic model here
     )
 
     # Create and return the crew
+    # Note: If analyze_travel also needs structured output, define a Pydantic model for it and add output_pydantic=YourTravelModel to that task too.
     crew = Crew(
         agents=[travel_assistant, health_monitor],
         tasks=[analyze_travel, health_recommendations],
@@ -438,53 +448,31 @@ def flight_recommendations_endpoint():
         crew = create_travel_crew(flight_details_json_str)
         crew_result_raw = crew.kickoff() # This triggers event listeners for progress
 
-        # Attempt to parse the crew result (assuming it might be a string containing JSONs)
-        recommendations = {}
-        try:
-            # CrewAI might return concatenated JSON strings or a single complex string.
-            # This is a basic attempt; might need refinement based on actual crew_result_raw format.
-            # Look for the JSON structures expected from the tasks.
-            # A more robust approach might involve modifying agents/tasks to return a single combined JSON.
-            travel_analysis_str = None
-            health_rec_str = None
-
-            # Simple split might work if results are clearly separated (e.g., by newlines or specific markers)
-            # Or, parse based on expected keys if the output is one large JSON string
-            # For now, let's assume the raw output might need parsing or the agents return structured data directly.
-            # If crew_result_raw IS the structured data (dict/list), use it directly.
-            # If it's a string, attempt parsing.
-
-            # Placeholder: Assume crew_result_raw is usable or needs specific parsing logic here.
-            # For simplicity, let's assume the last task's output (health) is the primary result string
-            # and we need to parse it. This might be incorrect depending on CrewAI setup.
-            if isinstance(crew_result_raw, str):
-                 # Try finding the health recommendations JSON
-                 health_start = crew_result_raw.rfind('{"sleep_schedule":') # Find last occurrence
-                 if health_start != -1:
-                     try:
-                         recommendations = json.loads(crew_result_raw[health_start:])
-                     except json.JSONDecodeError:
-                         print_internal_status('warning', "⚠️ Could not directly parse crew result as JSON, returning raw.")
-                         recommendations = {"raw_crew_output": crew_result_raw}
-                 else:
-                     recommendations = {"raw_crew_output": crew_result_raw}
-            elif isinstance(crew_result_raw, dict) or isinstance(crew_result_raw, list):
-                 # If CrewAI returns structured data directly
-                 recommendations = crew_result_raw # Or process as needed
-            else:
-                 recommendations = {"raw_crew_output": str(crew_result_raw)}
-
-
-        except Exception as parse_error:
-            print_internal_status('error', f"❌ Error parsing CrewAI result: {parse_error}")
-            recommendations = {"error_parsing_crew_result": str(parse_error), "raw_output": str(crew_result_raw)}
+        # Process crew result, expecting Pydantic model from the last task
+        recommendations_dict = {}
+        if isinstance(crew_result_raw, HealthRecommendations):
+            # If the raw result is already the Pydantic model instance
+            recommendations_dict = crew_result_raw.model_dump() # Use model_dump() for Pydantic v2+
+            print_internal_status('info', "CrewAI result is a Pydantic model. Converted to dict.")
+        elif hasattr(crew_result_raw, 'pydantic') and isinstance(crew_result_raw.pydantic, HealthRecommendations):
+             # If the result is wrapped in TaskOutput or similar with a .pydantic attribute
+             recommendations_dict = crew_result_raw.pydantic.model_dump()
+             print_internal_status('info', "Accessed Pydantic model from crew result attribute. Converted to dict.")
+        elif isinstance(crew_result_raw, dict):
+             # If for some reason it returns a dict directly
+             recommendations_dict = crew_result_raw
+             print_internal_status('info', "CrewAI result is already a dictionary.")
+        else:
+            # Fallback if the expected Pydantic model wasn't returned
+            print_internal_status('error', f"❌ CrewAI did not return the expected Pydantic model. Type received: {type(crew_result_raw)}")
+            recommendations_dict = {"error": "Failed to get structured output from AI.", "raw_output": str(crew_result_raw)}
 
 
         # 3. Combine and return
         final_response = {
             'success': True,
             'flight_details': flight_details,
-            'recommendations': recommendations # This now contains the parsed/raw crew output
+            'recommendations': recommendations_dict # Use the converted dictionary
         }
         print_internal_status('complete', "✅ Successfully generated flight recommendations.")
         return jsonify(final_response)
