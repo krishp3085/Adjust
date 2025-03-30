@@ -14,13 +14,18 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.krishp3085.adjustexpo"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
+      "permissions": [
+        "android.permission.health.READ_SLEEP",
+        "android.permission.health.READ_HEART_RATE"
+      ],
       "package": "com.krishp3085.adjustexpo"
     },
     "web": {
@@ -28,12 +33,11 @@
     },
     "plugins": [
       "expo-router",
+      "expo-health-connect",
       [
         "expo-build-properties",
         {
           "android": {
-            "compileSdkVersion": 34,
-            "targetSdkVersion": 34,
             "minSdkVersion": 26
           }
         }
