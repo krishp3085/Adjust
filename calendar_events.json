@@ -2,94 +2,101 @@
 [
   {
     "id": "a1b2c3d4-e5f6-7890-1234-567890abcdef",
-    "title": "Pre-flight: Hydration",
-    "startTime": "2025-03-30T14:00:00Z",
-    "endTime": "2025-03-30T17:00:00Z",
-    "description": "Drink plenty of water before departure."
+    "title": "Pre-flight Meal (High Protein, Low Fat)",
+    "startTime": "2025-03-29T18:00:00Z",
+    "endTime": "2025-03-29T19:00:00Z",
+    "description": "Consume a high-protein, low-fat meal to prepare for the flight. Avoid heavy, greasy foods."
   },
   {
-    "id": "f1e2d3c4-b5a6-0987-4321-fedcba987654",
-    "title": "Pre-flight: Light Meal",
-    "startTime": "2025-03-30T16:00:00Z",
-    "endTime": "2025-03-30T17:00:00Z",
-    "description": "Eat a light, healthy meal before the flight."
+    "id": "f1e2d3c4-b5a6-0987-4321-fedcba098765",
+    "title": "Travel to Airport",
+    "startTime": "2025-03-29T19:00:00Z",
+    "endTime": "2025-03-29T19:45:00Z",
+    "description": "Travel to the airport, allowing ample time for check-in and security."
   },
   {
     "id": "1a2b3c4d-e5f6-7890-1234-567890abcdef",
-    "title": "Travel to Airport",
+    "title": "Check-in and Security",
+    "startTime": "2025-03-29T19:45:00Z",
+    "endTime": "2025-03-29T20:15:00Z",
+    "description": "Complete check-in procedures and proceed through security."
+  },
+  {
+    "id": "2a3b4c5d-f6e7-8901-2345-678901234567",
+    "title": "Flight AI103 Departure (DEL to IAD)",
+    "startTime": "2025-03-29T20:25:00Z",
+    "endTime": "2025-03-30T11:15:00Z",
+    "description": "AI103 flight departure from Delhi (DEL) to Washington, D.C. (IAD)."
+  },
+  {
+    "id": "3a4b5c6d-0f1e-2a3b-4c5d-6e7f8a9b0c1d",
+    "title": "In-Flight Hydration",
+    "startTime": "2025-03-29T21:00:00Z",
+    "endTime": "2025-03-30T09:00:00Z",
+    "description": "Stay hydrated by drinking water throughout the flight. Avoid excessive alcohol and caffeine."
+  },
+  {
+    "id": "4a5b6c7d-1f2e-3a4b-5c6d-7e8f9a0b1c2d",
+    "title": "In-Flight Exercise (every 2 hours)",
+    "startTime": "2025-03-29T22:00:00Z",
+    "endTime": "2025-03-29T22:10:00Z",
+    "description": "Perform light exercises in your seat or in the aisle (if space permits) every two hours to improve circulation."
+  },
+    {
+    "id": "5a6b7c8d-2f3e-4a5b-6c7d-8e9f0a1b2c3d",
+    "title": "In-Flight Meal (Light and Balanced)",
+    "startTime": "2025-03-30T01:00:00Z",
+    "endTime": "2025-03-30T02:00:00Z",
+    "description": "Consume a light and balanced in-flight meal."
+  },
+    {
+    "id": "6a7b8c9d-3f4e-5a6b-7c8d-9e0f1a2b3c4d",
+    "title": "Sleep (attempt)",
+    "startTime": "2025-03-30T02:00:00Z",
+    "endTime": "2025-03-30T08:00:00Z",
+    "description": "Attempt to sleep during the flight to mitigate jet lag. Use earplugs, eye mask, etc."
+  },
+  {
+    "id": "7a8b9c0d-4f5e-6a7b-8c9d-0e1f2a3b4c5e",
+    "title": "Arrival at IAD & Airport procedures",
+    "startTime": "2025-03-30T11:15:00Z",
+    "endTime": "2025-03-30T13:00:00Z",
+    "description": "Arrival at Washington Dulles International Airport (IAD), including customs and immigration."
+  },
+    {
+    "id": "8a9b0c1d-5f6e-7a8b-9c0d-1e2f3a4b5c6f",
+    "title": "Post-flight Light Meal & Hydration",
+    "startTime": "2025-03-30T13:00:00Z",
+    "endTime": "2025-03-30T14:00:00Z",
+    "description": "Consume a light meal and rehydrate after the flight to facilitate recovery."
+  },
+  {
+    "id": "9a0b1c2d-6f7e-8a9b-0c1d-2f3e4a5b6c7f",
+    "title": "Gentle Walk/Stretch",
+    "startTime": "2025-03-30T14:00:00Z",
+    "endTime": "2025-03-30T14:30:00Z",
+    "description": "Take a gentle walk or perform light stretching exercises to improve circulation and reduce stiffness."
+  },
+  {
+    "id": "0a1b2c3d-7f8e-9a0b-1c2d-3e4f5a6b7c8f",
+    "title": "Adapt to local time - Outdoor Exposure",
     "startTime": "2025-03-30T15:00:00Z",
-    "endTime": "2025-03-30T17:00:00Z",
-    "description": "Allow time for travel, check-in, and security."
+    "endTime": "2025-03-30T16:00:00Z",
+    "description": "Spend some time outdoors in daylight to help adjust to the new time zone."
   },
   {
-    "id": "2a3b4c5d-f6e7-8901-2345-7890abcdef12",
-    "title": "Flight UA2116 Departure (IAD)",
-    "startTime": "2025-03-30T21:55:00Z",
-    "endTime": "2025-03-30T21:55:00Z",
-    "description": "Departure from IAD at 17:55 EDT."
+    "id": "1a2b3c4d-8f9e-0a1b-2c3d-4e5f6a7b8c9f",
+    "title": "Dinner (early, light)",
+    "startTime": "2025-03-30T19:00:00Z",
+    "endTime": "2025-03-30T20:00:00Z",
+    "description": "Have an early, light dinner to aid in adjusting to the new time zone."
   },
   {
-    "id": "3a4b5c6d-0123-4567-89ab-cdef01234567",
-    "title": "In-Flight: Hydration & Movement",
-    "startTime": "2025-03-30T22:00:00Z",
-    "endTime": "2025-03-31T00:30:00Z",
-    "description": "Drink water, walk around cabin, and do in-seat stretches periodically."
-  },
-  {
-    "id": "4a5b6c7d-2345-6789-abcd-ef0123456789",
-    "title": "Flight UA2116 Arrival (DFW)",
-    "startTime": "2025-03-31T01:29:00Z",
-    "endTime": "2025-03-31T01:29:00Z",
-    "description": "Arrival at DFW at 20:29 CDT."
-  },
-    {
-    "id": "5a6b7c8d-3456-7890-bcde-f0123456789a",
-    "title": "Post-flight: Hydration",
-    "startTime": "2025-03-31T01:30:00Z",
-    "endTime": "2025-03-31T02:00:00Z",
-    "description": "Drink plenty of water."
-  },
-  {
-    "id": "6a7b8c9d-4567-8901-cdef-0123456789ab",
-    "title": "Post-flight: Light Activity",
-    "startTime": "2025-03-31T02:00:00Z",
-    "endTime": "2025-03-31T02:30:00Z",
-    "description": "Engage in light exercise."
-  },
-  {
-    "id": "7a8b9c0d-5678-9012-def0-123456789abc",
-    "title": "Dinner in DFW",
-    "startTime": "2025-03-31T02:00:00Z",
-    "endTime": "2025-03-31T03:00:00Z",
-    "description": "Eat a light meal. Avoid heavy meals."
-  },
-  {
-    "id": "8a9b0c1d-6789-0123-f012-3456789abcd",
-    "title": "Bedtime (DFW Time)",
-    "startTime": "2025-03-31T03:00:00Z",
-    "endTime": "2025-03-31T09:00:00Z",
-    "description": "Aim for normal bedtime in DFW."
-  },
-    {
-    "id": "9a0b1c2d-7890-1234-0123-56789abcdef",
-    "title": "Wake up (DFW Time)",
-    "startTime": "2025-03-31T14:00:00Z",
-    "endTime": "2025-03-31T14:30:00Z",
-    "description": "Wake up at a reasonable time in DFW to stay active."
-  },
-    {
-    "id": "a0b1c2d3-8901-2345-3456-90abcdef12",
-    "title": "Breakfast (DFW Time)",
-    "startTime": "2025-03-31T14:30:00Z",
-    "endTime": "2025-03-31T15:30:00Z",
-    "description": "Eat breakfast at a regular time in DFW."
-  },
-    {
-    "id": "b0c1d2e3-9012-3456-4567-abcdef12345",
-    "title": "Lunch (DFW Time)",
-    "startTime": "2025-03-31T19:30:00Z",
-    "endTime": "2025-03-31T20:30:00Z",
-    "description": "Eat lunch at a regular time in DFW."
+    "id": "2a3b4c5d-9f0e-1a2b-3c4d-5e6f7a8b9c0f",
+    "title": "Bedtime Routine (sleep as soon as possible)",
+    "startTime": "2025-03-30T21:00:00Z",
+    "endTime": "2025-03-30T22:00:00Z",
+    "description": "Follow a relaxing bedtime routine to prepare for sleep as soon as possible, trying to adapt to local time."
   }
 ]
 ```

@@ -58,10 +58,15 @@ const calculateAvgSleepDuration = (sleepRecords: any[]): string => {
         try {
             const startTime = new Date(record.startTime);
             const endTime = new Date(record.endTime);
-            const durationSeconds = differenceInSeconds(endTime, startTime);
-            if (durationSeconds > 0) {
-                totalDurationSeconds += durationSeconds;
-                validSessions++;
+            // Ensure dates are valid before calculating difference
+            if (!isNaN(startTime.getTime()) && !isNaN(endTime.getTime())) {
+                const durationSeconds = differenceInSeconds(endTime, startTime);
+                if (durationSeconds > 0) {
+                    totalDurationSeconds += durationSeconds;
+                    validSessions++;
+                }
+            } else {
+                 console.warn("Invalid date in sleep record:", record);
             }
         } catch (e) {
             console.warn("Could not parse sleep record times for duration calculation:", e);
@@ -77,43 +82,78 @@ const calculateAvgSleepDuration = (sleepRecords: any[]): string => {
 
 // Calculate Average Heart Rate During Sleep Periods
 const calculateAvgSleepHr = (sleepRecords: any[], hrRecords: any[]): number | null => {
-    if (!sleepRecords || sleepRecords.length === 0 || !hrRecords || hrRecords.length === 0) return null;
+    console.log(`[calculateAvgSleepHr] Starting calculation with ${sleepRecords?.length} sleep records and ${hrRecords?.length} HR records.`);
+    if (!sleepRecords || sleepRecords.length === 0 || !hrRecords || hrRecords.length === 0) {
+        console.log("[calculateAvgSleepHr] Missing sleep or HR records.");
+        return null;
+    }
 
     let totalHrSum = 0;
     let totalHrCount = 0;
 
-    // Flatten HR samples with parsed dates
-    const allHrSamples: { time: Date; bpm: number }[] = [];
+    // Flatten HR samples with parsed dates (numeric timestamps for comparison)
+    const allHrSamples: { timeMs: number; bpm: number }[] = [];
     hrRecords.forEach(record => {
         record.samples?.forEach((sample: { time: string; beatsPerMinute: number }) => {
             try {
-                allHrSamples.push({ time: new Date(sample.time), bpm: sample.beatsPerMinute });
-            } catch (e) { console.warn("Could not parse HR sample time:", e); }
+                const sampleTime = new Date(sample.time);
+                if (!isNaN(sampleTime.getTime())) { // Check if date is valid
+                   allHrSamples.push({ timeMs: sampleTime.getTime(), bpm: sample.beatsPerMinute });
+                } else {
+                   console.warn(`[calculateAvgSleepHr] Invalid HR sample time format: ${sample.time}`);
+                }
+            } catch (e) { console.warn("[calculateAvgSleepHr] Could not parse HR sample time:", e); }
         });
     });
 
-    if (allHrSamples.length === 0) return null;
+    if (allHrSamples.length === 0) {
+        console.log("[calculateAvgSleepHr] No valid HR samples found after parsing.");
+        return null;
+    }
 
-    // Sort HR samples by time for potential optimization (though linear scan is used here)
-    allHrSamples.sort((a, b) => a.time.getTime() - b.time.getTime());
+    // Sort HR samples by time (using numeric timestamps)
+    allHrSamples.sort((a, b) => a.timeMs - b.timeMs);
+    console.log(`[calculateAvgSleepHr] Parsed and sorted ${allHrSamples.length} HR samples.`);
 
-    sleepRecords.forEach(session => {
+    sleepRecords.forEach((session, index) => {
         try {
             const sessionStart = new Date(session.startTime);
             const sessionEnd = new Date(session.endTime);
 
-            // Find HR samples within this sleep session
+            // Check if session dates are valid
+            if (isNaN(sessionStart.getTime()) || isNaN(sessionEnd.getTime())) {
+                console.warn(`[calculateAvgSleepHr] Invalid start/end time for sleep session index ${index}. Skipping.`);
+                return; // Skip this session
+            }
+
+            const sessionStartMs = sessionStart.getTime();
+            const sessionEndMs = sessionEnd.getTime();
+            console.log(`[calculateAvgSleepHr] Processing sleep session ${index + 1}: ${sessionStart.toISOString()} (${sessionStartMs}) - ${sessionEnd.toISOString()} (${sessionEndMs})`);
+
+            let sessionHrSum = 0;
+            let sessionHrCount = 0;
+
+            // Find relevant HR samples using numeric timestamps
             allHrSamples.forEach(sample => {
-                if (sample.time >= sessionStart && sample.time <= sessionEnd) {
-                    totalHrSum += sample.bpm;
-                    totalHrCount++;
+                if (sample.timeMs >= sessionStartMs && sample.timeMs <= sessionEndMs) {
+                    sessionHrSum += sample.bpm;
+                    sessionHrCount++;
                 }
             });
+
+            if (sessionHrCount > 0) {
+                console.log(`[calculateAvgSleepHr]   Found ${sessionHrCount} HR samples within session ${index + 1}. Avg: ${(sessionHrSum / sessionHrCount).toFixed(1)}`);
+                totalHrSum += sessionHrSum;
+                totalHrCount += sessionHrCount;
+            } else {
+                 console.log(`[calculateAvgSleepHr]   No HR samples found within session ${index + 1}.`);
+            }
         } catch (e) {
-            console.warn("Could not parse sleep session times for HR correlation:", e);
+            console.warn(`[calculateAvgSleepHr] Could not parse sleep session times for HR correlation (session index ${index}):`, e);
         }
     });
 
+    console.log(`[calculateAvgSleepHr] Final calculation: totalHrSum=${totalHrSum}, totalHrCount=${totalHrCount}`);
     return totalHrCount > 0 ? totalHrSum / totalHrCount : null;
 };
 
@@ -168,12 +208,10 @@ export default function HealthScreen() {
                 return;
             }
 
-            console.log('Waiting briefly after permission grant...');
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            console.log('Proceeding to fetch data...');
-
-            const sleepRecords = await fetchSleepData(4);
-            const heartRateRecords = await fetchHeartRateData(2);
+            console.log('Fetching health data...');
+            // Fetch data for the last 7 days for analysis
+            const sleepRecords = await fetchSleepData(7);
+            const heartRateRecords = await fetchHeartRateData(7);
 
             const healthData = {
                 sleepRecords,
