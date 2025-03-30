@@ -213,10 +213,20 @@ def get_flight_details(carrier_code, flight_number, departure_date):
             departure_code = departure_point.get('iataCode')
             arrival_code = arrival_point.get('iataCode')
 
-            departure_time_str = departure_point.get('departure', {}).get('timings', [{}])[0].get('value')
-            arrival_time_str = arrival_point.get('arrival', {}).get('timings', [{}])[0].get('value')
+            # Safely get timings
+            departure_timings = departure_point.get('departure', {}).get('timings', [])
+            arrival_timings = arrival_point.get('arrival', {}).get('timings', [])
+
+            # Check if timings lists are non-empty before accessing index 0
+            if not departure_timings or not arrival_timings:
+                print_internal_status('warning', f"Skipping flight schedule due to missing departure/arrival timings for {carrier_code}{flight_number}.")
+                continue # Skip this flight schedule entry if timings are missing
+
+            departure_time_str = departure_timings[0].get('value')
+            arrival_time_str = arrival_timings[0].get('value')
 
             if not all([departure_code, arrival_code, departure_time_str, arrival_time_str]):
+                print_internal_status('warning', f"Skipping flight schedule due to missing essential codes or time strings for {carrier_code}{flight_number}.")
                 continue # Missing essential info
 
             departure_iso = format_iso_datetime(departure_time_str)
@@ -348,7 +358,15 @@ def create_travel_crew(flight_details_json):
     destination_code = flight_details.get('arrival', {}).get('airportCode', 'Unknown Destination')
     departure_time = flight_details.get('departure', {}).get('scheduledTimeISO', 'Unknown Departure Time')
     arrival_time = flight_details.get('arrival', {}).get('scheduledTimeISO', 'Unknown Arrival Time')
-    duration = flight_details.get('legs', [{}])[0].get('scheduledLegDuration', 'Unknown Duration') # Example: Get duration from first leg
+
+    # Safely get duration from the first leg, if legs exist
+    legs_data = flight_details.get('legs', [])
+    duration = 'Unknown Duration'
+    if legs_data:
+        duration = legs_data[0].get('scheduledLegDuration', 'Unknown Duration')
+    else:
+        print_internal_status('warning', "No 'legs' data found in flight details to determine duration.")
+
 
     # Create tasks for the crew, providing the full flight details as context
     analyze_travel = Task(
