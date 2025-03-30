@@ -1,106 +1,135 @@
-import { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, ActivityIndicator, Image } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, ActivityIndicator, Image, Keyboard, Alert, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
+import { useRouter } from 'expo-router';
+import { useFlightData } from '../../context/FlightDataContext';
 
 export default function BoardingScreen() {
-  const [flightNumber, setFlightNumber] = useState('');
-  const [departureDate, setDepartureDate] = useState('');
-  const [flightDetails, setFlightDetails] = useState<any>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  // State for inputs
+  const [flightCode, setFlightCode] = useState(''); // Combined flight code (e.g., UA2116)
+  const [date, setDate] = useState<Date | undefined>(undefined); // Date object for picker
+  const [showDatePicker, setShowDatePicker] = useState(false); // To toggle picker visibility
 
-  const fetchFlightDetails = async () => {
-    if (!flightNumber || !departureDate) {
-      setError('Please enter both flight number and departure date.');
+  // Context and navigation
+  const { fetchFlightData, isLoading, error } = useFlightData();
+  const router = useRouter();
+
+  // Handler for date selection
+  const onDateChange = (event: DateTimePickerEvent, selectedDate?: Date) => {
+    const currentDate = selectedDate || date;
+    setShowDatePicker(Platform.OS === 'ios'); // Keep open on iOS until dismissed
+    if (currentDate) {
+        setDate(currentDate);
+    }
+  };
+
+  // Handler for submitting the form (Refactored to use .then/.catch)
+  const handleFetchAndNavigate = () => { // Removed async
+    Keyboard.dismiss();
+
+    // Validation
+    if (!flightCode || !date) {
+      Alert.alert('Missing Information', 'Please enter Flight Code and select a Departure Date.');
       return;
     }
 
-    setLoading(true);
-    setError('');
-    try {
-      // Replace with the actual API URL and logic
-      const response = await fetch(`https://api.example.com/flight?flightNumber=${flightNumber}&departureDate=${departureDate}`);
-      const data = await response.json();
-      
-      if (response.ok) {
-        setFlightDetails(data);
-      } else {
-        setError('Failed to fetch flight details.');
-      }
-    } catch (err) {
-      console.error('Error fetching flight details:', err);
-      setError('An error occurred while fetching flight details.');
-    } finally {
-      setLoading(false);
+    // Parse flight code (assuming 2 letters + numbers)
+    const potentialCarrierCode = flightCode.substring(0, 2).toUpperCase();
+    const potentialFlightNumber = flightCode.substring(2);
+
+    // Validate flight code format
+    if (!/^[A-Z]{2}$/.test(potentialCarrierCode) || !/^\d{1,4}$/.test(potentialFlightNumber)) {
+        Alert.alert('Invalid Flight Code', 'Please enter the code in the format AA1234 (2 letters followed by numbers).');
+        return;
     }
+
+    // Format date to YYYY-MM-DD
+    const formattedDate = date.toISOString().split('T')[0];
+
+    // Fetch data using context function with .then() and .catch()
+    fetchFlightData(potentialCarrierCode, potentialFlightNumber, formattedDate)
+      .then(success => {
+        if (success) {
+          router.push('/(tabs)/summary'); // Navigate on success
+        }
+        // If not success, the error state is already set in fetchFlightData
+        // and will be displayed by the {error && ...} block below
+      })
+      .catch(err => {
+        // This catch is mostly for unexpected errors *before* fetchFlightData sets its own error state
+        console.error("Unexpected error in handleFetchAndNavigate:", err);
+        // Optionally set a generic error message here if needed, though fetchFlightData should handle API errors
+        // setError("An unexpected error occurred.");
+      });
   };
 
   return (
     <View style={styles.container}>
+      {/* Background Image and Gradient */}
       <Image
         source={{ uri: 'https://images.unsplash.com/photo-1436491865332-7a61a109cc05' }}
         style={[StyleSheet.absoluteFillObject, { opacity: 0.2 }]}
       />
       <LinearGradient colors={['rgba(0,0,0,0.9)', 'rgba(0,0,0,0.9)']} style={StyleSheet.absoluteFillObject} />
       <View style={styles.content}>
-        <Text style={styles.title}>Flight Information</Text>
-        
+        <Text style={styles.title}>Enter Flight Information</Text>
+
+        {/* Combined Flight Code Input */}
         <TextInput
           style={styles.input}
-          placeholder="Enter Flight Number"
+          placeholder="Flight Code (e.g., UA2116)"
           placeholderTextColor="#888"
-          value={flightNumber}
-          onChangeText={setFlightNumber}
-        />
-        
-        <TextInput
-          style={styles.input}
-          placeholder="Enter Departure Date (YYYY-MM-DD)"
-          placeholderTextColor="#888"
-          value={departureDate}
-          onChangeText={setDepartureDate}
+          value={flightCode}
+          onChangeText={setFlightCode}
+          autoCapitalize="characters"
+          maxLength={6} // Adjust as needed (e.g., AA1234)
         />
 
-        {loading ? (
+        {/* Date Picker Trigger Button */}
+        <TouchableOpacity onPress={() => setShowDatePicker(true)} style={styles.datePickerButton}>
+          <Ionicons name="calendar-outline" size={20} color="#fff" style={{ marginRight: 10 }} />
+          <Text style={styles.datePickerButtonText}>
+            {date ? date.toLocaleDateString() : 'Select Departure Date'}
+          </Text>
+        </TouchableOpacity>
+
+        {/* Date Picker Modal */}
+        {showDatePicker && (
+          <DateTimePicker
+            testID="dateTimePicker"
+            value={date || new Date()} // Default to today if no date selected
+            mode="date"
+            display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+            onChange={onDateChange}
+            // minimumDate={new Date()} // Optional: Prevent selecting past dates
+          />
+        )}
+
+        {/* Loading Indicator or Submit Button */}
+        {isLoading ? (
           <ActivityIndicator size="large" color="#007AFF" style={styles.loading} />
         ) : (
           <TouchableOpacity
             style={styles.button}
-            onPress={fetchFlightDetails}
+            onPress={handleFetchAndNavigate}
           >
-            <Ionicons name="airplane" size={24} color="#fff" style={styles.buttonIcon} />
-            <Text style={styles.buttonText}>Fetch Flight Details</Text>
+            <Ionicons name="paper-plane-outline" size={24} color="#fff" style={styles.buttonIcon} />
+            <Text style={styles.buttonText}>Get AI Travel Plan</Text>
           </TouchableOpacity>
         )}
 
-        {error ? (
+        {/* Error Message Display */}
+        {error && !isLoading && (
           <Text style={styles.errorText}>{error}</Text>
-        ) : (
-          flightDetails && (
-            <View style={styles.resultContainer}>
-              <Text style={styles.resultTitle}>Flight Details</Text>
-              <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>Flight Number:</Text>
-                <Text style={styles.detailValue}>{flightDetails.flightNumber}</Text>
-              </View>
-              <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>Departure Date:</Text>
-                <Text style={styles.detailValue}>{flightDetails.departureDate}</Text>
-              </View>
-              <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>Destination:</Text>
-                <Text style={styles.detailValue}>{flightDetails.destination}</Text>
-              </View>
-              {/* Add more flight details as needed */}
-            </View>
-          )
         )}
       </View>
     </View>
   );
 }
 
+// Styles (kept similar to previous version)
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -116,25 +145,48 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: 'bold',
     color: '#fff',
-    marginBottom: 20,
+    marginBottom: 30,
     textAlign: 'center',
   },
   input: {
-    width: '80%',
-    padding: 12,
+    width: '90%',
+    padding: 15,
     backgroundColor: '#333',
     color: '#fff',
     borderRadius: 8,
-    marginBottom: 20,
+    marginBottom: 15,
+    fontSize: 16,
+    borderWidth: 1,
+    borderColor: '#555',
+  },
+  datePickerButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    width: '90%',
+    padding: 15,
+    backgroundColor: '#333',
+    borderRadius: 8,
+    marginBottom: 15,
+    borderWidth: 1,
+    borderColor: '#555',
+    justifyContent: 'center',
+  },
+  datePickerButtonText: {
+    color: '#fff',
     fontSize: 16,
   },
   button: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#6a4c9c',
+    backgroundColor: '#007AFF',
     padding: 16,
     borderRadius: 12,
     marginVertical: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 5,
   },
   buttonText: {
     color: '#fff',
@@ -146,46 +198,17 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   loading: {
-    marginTop: 20,
+    marginVertical: 46, // Match button vertical space
   },
   errorText: {
-    color: '#dc3545',
-    fontSize: 16,
-    marginTop: 12,
+    color: '#FF6B6B',
+    backgroundColor: 'rgba(255, 107, 107, 0.1)',
+    paddingHorizontal: 15,
+    paddingVertical: 10,
+    borderRadius: 8,
+    fontSize: 15,
+    marginTop: 15,
     textAlign: 'center',
-  },
-  resultContainer: {
-    backgroundColor: '#fff',
-    padding: 20,
-    borderRadius: 12,
-    width: '100%',
-    marginTop: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 5,
-  },
-  resultTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 16,
-    color: '#333',
-  },
-  detailRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-  },
-  detailLabel: {
-    fontSize: 16,
-    color: '#666',
-  },
-  detailValue: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
+    maxWidth: '90%',
   },
 });
