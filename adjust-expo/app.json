@@ -28,7 +28,6 @@
     },
     "plugins": [
       "expo-router",
-      "expo-health-connect",
       [
         "expo-build-properties",
         {
