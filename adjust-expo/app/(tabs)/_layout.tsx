@@ -8,8 +8,19 @@ export default function TabLayout() {
     <FlightDataProvider> {/* Wrap Tabs with the provider */}
       <Tabs
         screenOptions={{
-          headerShown: false, // Set to false to hide headers
-         tabBarActiveTintColor: '#007AFF',
+          headerShown: false, // Keep headers hidden
+          tabBarActiveTintColor: '#00AFFF', // Use the brighter blue for active
+          tabBarInactiveTintColor: '#8e8e93', // Standard iOS inactive gray, good contrast on dark
+          tabBarStyle: {
+            backgroundColor: '#121212', // Dark background for the tab bar
+            borderTopColor: '#333', // Optional: subtle top border
+            // paddingBottom: 5, // Optional: Adjust padding if needed
+            // height: 60, // Optional: Adjust height if needed
+          },
+          // tabBarLabelStyle: { // Optional: Style the labels if needed
+          //   fontSize: 10,
+          //   fontWeight: '500',
+          // },
       }}>
       <Tabs.Screen
         name="schedule" // Renamed from sleep
