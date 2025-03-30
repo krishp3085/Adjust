@@ -3,6 +3,26 @@ import { View, Text, StyleSheet, ScrollView, ActivityIndicator } from 'react-nat
 import { useFlightData } from '../../context/FlightDataContext'; // Import the context hook
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons'; // Import icons
 
+// --- Helper Function to Format Date/Time ---
+const formatDateTime = (isoString: string | undefined): string => {
+  if (!isoString) return 'N/A';
+  try {
+    const date = new Date(isoString);
+    // Example format: Mar 28, 08:00 (adjust options as needed)
+    return date.toLocaleTimeString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false, // Use 24-hour format
+      timeZone: 'UTC' // Assuming times are UTC, adjust if they include offset
+    });
+  } catch (e) {
+    console.error("Error formatting date:", e);
+    return 'Invalid Date';
+  }
+};
+
 // Helper component for rendering recommendation items
 const RecommendationItem: React.FC<{ text: string; icon?: keyof typeof Ionicons.glyphMap }> = ({ text, icon }) => (
   <View style={styles.subContainer}>
@@ -76,6 +96,10 @@ const SummaryPage: React.FC = () => {
         <Text style={styles.title}>AI Travel Plan</Text>
         <Text style={styles.subTitle}>
           {flight_details.departure.airportCode} ➔ {flight_details.arrival.airportCode} ({flight_details.flightDesignator.carrierCode}{flight_details.flightDesignator.flightNumber})
+        </Text>
+        {/* Display Departure and Arrival Times as a subheading */}
+        <Text style={styles.timeText}>
+            Dep: {formatDateTime(flight_details.departure.scheduledTimeISO)} | Arr: {formatDateTime(flight_details.arrival.scheduledTimeISO)}
         </Text>
       </View>
 
@@ -293,6 +317,13 @@ const styles = StyleSheet.create({
     color: '#888',
     marginTop: 10,
     fontFamily: 'monospace', // Use monospace for raw output if available
+  },
+  // timeContainer style removed
+  timeText: { // Style for the time subheading
+    color: '#B0C4DE', // Lighter steel blue
+    fontSize: 14,
+    marginTop: 5, // Add a little space below the main subtitle
+    textAlign: 'center', // Center the time text
   },
   // Removed aiSection, input, aiResponse, syncButton styles
 });
