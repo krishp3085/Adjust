@@ -62,7 +62,8 @@ interface FlightDataProviderProps {
   children: ReactNode;
 }
 
-const API_BASE_URL = 'http://127.0.0.1:5000'; // <-- REPLACE THIS IP
+// Use the computer's local IP address accessible by the emulator/device
+const API_BASE_URL = 'http://172.16.202.117:5000'; // <-- Updated IP from Expo logs
 
 export const FlightDataProvider: React.FC<FlightDataProviderProps> = ({ children }) => {
   const [flightData, setFlightData] = useState<FlightDataResponse | null>(null);
