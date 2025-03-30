@@ -8,13 +8,13 @@ export default function TabLayout() {
     <FlightDataProvider> {/* Wrap Tabs with the provider */}
       <Tabs
         screenOptions={{
-          headerShown: true, // Keep existing options or adjust as needed
-        tabBarActiveTintColor: '#007AFF',
+          headerShown: false, // Set to false to hide headers
+         tabBarActiveTintColor: '#007AFF',
       }}>
       <Tabs.Screen
-        name="sleep"
+        name="schedule" // Renamed from sleep
         options={{
-          title: 'Sleep',
+          title: 'Schedule', // Updated title
           tabBarIcon: ({ size, color }) => (
             <Ionicons name="moon" size={size} color={color} />
           ),
