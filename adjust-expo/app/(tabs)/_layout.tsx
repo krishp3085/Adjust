@@ -36,8 +36,17 @@ export default function TabLayout() {
           tabBarIcon: ({ size, color }) => (
             <MaterialCommunityIcons name="notebook" size={size} color={color} />
           ),
-          }}
-        />
+        }}
+      />
+      <Tabs.Screen
+        name="health"
+        options={{
+          title: 'Health',
+          tabBarIcon: ({ size, color }) => (
+            <MaterialCommunityIcons name="notebook" size={size} color={color} />
+          ),
+        }}
+      />
         {/* ... other screens ... */}
       </Tabs>
     </FlightDataProvider>
