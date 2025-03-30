@@ -1,14 +1,14 @@
 import { Tabs } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { FlightDataProvider } from '../../context/FlightDataContext'; // Import the provider
+import { FlightDataProvider } from '@/context/FlightDataContext'; // Import the provider
 
 export default function TabLayout() {
   return (
     <FlightDataProvider> {/* Wrap Tabs with the provider */}
       <Tabs
         screenOptions={{
-          headerShown: true, // Keep existing options or adjust as needed
+          headerShown: false, // Keep existing options or adjust as needed
         tabBarActiveTintColor: '#007AFF',
       }}>
       <Tabs.Screen
