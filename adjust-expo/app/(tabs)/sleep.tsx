@@ -28,7 +28,7 @@ export default function Sleep() {
         {/* Center: timeline icon container with label */}
         <View style={styles.centerContainer}>
           <View style={styles.iconTextContainer}>
-            <Ionicons name={item.iconName} size={24} color="#555" style={styles.icon} />
+            <Ionicons name={item.iconName} size={24} color="#fff" style={styles.icon} />
             <Text style={styles.iconLabel}>{item.label}</Text>
           </View>
         </View>
@@ -67,8 +67,9 @@ const { height } = Dimensions.get('window');
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#121212', // Dark theme background
     position: 'relative', // For absolute positioning of the timeline
+    paddingVertical: 20,
   },
   listContent: {
     paddingVertical: 16,
@@ -105,25 +106,24 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginVertical: 20,
     width: '100%',
+    paddingHorizontal: 20, // Space on left and right
   },
   leftColumn: {
     flex: 1,
     alignItems: 'flex-start',
-    paddingLeft: 16,
   },
   rightColumn: {
     flex: 1,
     alignItems: 'flex-end',
-    paddingRight: 16,
   },
   timeText: {
     fontSize: 16,
-    color: '#333',
+    color: '#fff', // White text for dark mode
   },
 
   // Center container for the timeline item
   centerContainer: {
-    width: 150,
+    width: 200,
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 1, // Make sure the container is above the timeline line and dot
@@ -131,18 +131,18 @@ const styles = StyleSheet.create({
   iconTextContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f7f7f7',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 10,
+    backgroundColor: '#444', // Darker background for the container
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#ccc',
+    borderColor: '#666', // Subtle border color
   },
   icon: {
     marginRight: 8,
   },
   iconLabel: {
     fontSize: 14,
-    color: '#555',
+    color: '#fff', // White text for dark mode
   },
 });

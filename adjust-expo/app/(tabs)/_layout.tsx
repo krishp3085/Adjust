@@ -28,7 +28,7 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="Summary"
+        name="summary"
         options={{
           title: 'Summary',
           tabBarIcon: ({ size, color }) => (
