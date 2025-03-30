@@ -177,6 +177,32 @@ const SummaryPage: React.FC = () => {
                )}
              </InfoSection>
            )}
+
+           {/* Light Exposure Section */}
+           {recs.light_exposure_advice && (
+             <InfoSection title="Light Exposure" icon="weather-sunny">
+               <RecommendationItem text={recs.light_exposure_advice} icon="eye-outline" />
+             </InfoSection>
+           )}
+
+           {/* Relaxation Section */}
+           {recs.relaxation_advice && (
+             <InfoSection title="Relaxation" icon="spa-outline"> {/* Corrected Icon */}
+               <RecommendationItem text={recs.relaxation_advice} icon="heart-outline" />
+             </InfoSection>
+           )}
+
+           {/* Nap Advice (Integrated into Sleep Section or separate) */}
+           {/* Option 1: Add to Sleep Section */}
+           {/* {recs.nap_advice && recs.sleep_schedule && (
+             <RecommendationItem text={`Naps: ${recs.nap_advice}`} icon="cafe-outline" />
+           )} */}
+           {/* Option 2: Separate Section (if significant enough) */}
+           {recs.nap_advice && !recs.sleep_schedule?.nap_strategy_advice && ( // Show only if not already in sleep section
+             <InfoSection title="Nap Strategy" icon="coffee-outline"> {/* Corrected Icon */}
+                <RecommendationItem text={recs.nap_advice} />
+             </InfoSection>
+           )}
         </>
       ) : (
          // Fallback if parsing failed on backend but request was 'successful'

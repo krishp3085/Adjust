@@ -13,7 +13,8 @@ export default function BoardingScreen() {
   const [showDatePicker, setShowDatePicker] = useState(false); // To toggle picker visibility
 
   // Context and navigation
-  const { fetchFlightData, isLoading, error } = useFlightData();
+  // Use setInputFlightDetails instead of fetchFlightData directly here
+  const { setInputFlightDetails, isLoading, error } = useFlightData();
   const router = useRouter();
 
   // Handler for date selection
@@ -25,8 +26,8 @@ export default function BoardingScreen() {
     }
   };
 
-  // Handler for submitting the form (Refactored to use .then/.catch)
-  const handleFetchAndNavigate = () => { // Removed async
+  // Handler for saving flight inputs and navigating
+  const handleSaveInputsAndNavigate = () => {
     Keyboard.dismiss();
 
     // Validation
@@ -48,21 +49,19 @@ export default function BoardingScreen() {
     // Format date to YYYY-MM-DD
     const formattedDate = date.toISOString().split('T')[0];
 
-    // Fetch data using context function with .then() and .catch()
-    fetchFlightData(potentialCarrierCode, potentialFlightNumber, formattedDate)
-      .then(success => {
-        if (success) {
-          router.push('/(tabs)/summary'); // Navigate on success
-        }
-        // If not success, the error state is already set in fetchFlightData
-        // and will be displayed by the {error && ...} block below
-      })
-      .catch(err => {
-        // This catch is mostly for unexpected errors *before* fetchFlightData sets its own error state
-        console.error("Unexpected error in handleFetchAndNavigate:", err);
-        // Optionally set a generic error message here if needed, though fetchFlightData should handle API errors
-        // setError("An unexpected error occurred.");
-      });
+    // Save inputs to context
+    setInputFlightDetails({
+        carrierCode: potentialCarrierCode,
+        flightNumber: potentialFlightNumber,
+        departureDate: formattedDate
+    });
+
+    // Navigate to the Health tab (or Summary, depending on desired flow)
+    // Let's navigate to Health tab to prompt sync/generate
+    router.push('/(tabs)/health');
+    // Optionally show a success message here if needed
+    // Alert.alert('Flight Info Saved', 'Go to the Health tab to sync data and generate your plan.');
+
   };
 
   return (
@@ -113,10 +112,10 @@ export default function BoardingScreen() {
         ) : (
           <TouchableOpacity
             style={styles.button}
-            onPress={handleFetchAndNavigate}
+            onPress={handleSaveInputsAndNavigate} // Use the new handler
           >
-            <Ionicons name="paper-plane-outline" size={24} color="#fff" style={styles.buttonIcon} />
-            <Text style={styles.buttonText}>Get AI Travel Plan</Text>
+            <Ionicons name="save-outline" size={24} color="#fff" style={styles.buttonIcon} />
+            <Text style={styles.buttonText}>Save Flight Info</Text> {/* Updated Button Text */}
           </TouchableOpacity>
         )}
 

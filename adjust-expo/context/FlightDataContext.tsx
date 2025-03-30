@@ -36,6 +36,10 @@ interface Recommendations {
     daily_target_liters?: string;
     hydration_schedule_tips?: string[];
   };
+  // New fields for personalized advice
+  light_exposure_advice?: string;
+  relaxation_advice?: string;
+  nap_advice?: string;
   // Include raw_crew_output or error fields if parsing fails
   raw_crew_output?: string;
   error_parsing_crew_result?: string;
@@ -54,6 +58,9 @@ interface FlightDataContextType {
   isLoading: boolean;
   error: string | null;
   fetchFlightData: (carrierCode: string, flightNumber: string, scheduledDepartureDate: string) => Promise<boolean>; // Returns true on success, false on failure
+  // Add state for storing flight inputs
+  inputFlightDetails: { carrierCode: string; flightNumber: string; departureDate: string } | null;
+  setInputFlightDetails: (details: { carrierCode: string; flightNumber: string; departureDate: string } | null) => void;
 }
 
 const FlightDataContext = createContext<FlightDataContextType | undefined>(undefined);
@@ -64,11 +71,20 @@ interface FlightDataProviderProps {
 
 // Use the computer's local IP address accessible by the emulator/device
 const API_BASE_URL = 'http://172.16.202.117:5000'; // <-- Updated IP from Expo logs
-
 export const FlightDataProvider: React.FC<FlightDataProviderProps> = ({ children }) => {
   const [flightData, setFlightData] = useState<FlightDataResponse | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  // State for storing flight inputs before fetching
+  const [inputFlightDetails, setInputFlightDetailsState] = useState<{ carrierCode: string; flightNumber: string; departureDate: string } | null>(null);
+
+  // Function to update stored input details
+  const setInputFlightDetails = (details: { carrierCode: string; flightNumber: string; departureDate: string } | null) => {
+    setInputFlightDetailsState(details);
+    // Optionally clear old results when new input is set? Or keep them until explicit fetch?
+    // setFlightData(null);
+    // setError(null);
+  };
 
   const fetchFlightData = async (carrierCode: string, flightNumber: string, scheduledDepartureDate: string): Promise<boolean> => {
     setIsLoading(true);
@@ -132,7 +148,14 @@ export const FlightDataProvider: React.FC<FlightDataProviderProps> = ({ children
   };
 
   return (
-    <FlightDataContext.Provider value={{ flightData, isLoading, error, fetchFlightData }}>
+    <FlightDataContext.Provider value={{
+        flightData,
+        isLoading,
+        error,
+        fetchFlightData,
+        inputFlightDetails, // Provide state
+        setInputFlightDetails // Provide setter function
+      }}>
       {children}
     </FlightDataContext.Provider>
   );

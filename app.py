@@ -25,7 +25,7 @@ import re # Import regex for parsing
 from pydantic import BaseModel, Field # Import Pydantic
 from typing import List, Optional # For type hinting in Pydantic models
 import uuid # For generating unique event IDs
-import threading # For file locking
+import threading # For file locking and background task
 
 app = Flask(__name__)
 CORS(app)
@@ -240,8 +240,12 @@ def clean_and_parse_json_file(file_path):
 def format_iso_datetime(dt_str):
     if not dt_str: return None
     try:
-        datetime.fromisoformat(dt_str)
-        return dt_str
+        # Attempt to parse with or without fractional seconds
+        if '.' in dt_str:
+            dt_obj = datetime.fromisoformat(dt_str.replace('Z', '+00:00'))
+        else:
+            dt_obj = datetime.fromisoformat(dt_str.replace('Z', '') + '+00:00')
+        return dt_obj.isoformat().replace('+00:00', 'Z') # Return consistent format
     except ValueError:
         print_internal_status('error', f"Invalid datetime format from Amadeus: {dt_str}")
         return None
@@ -306,7 +310,7 @@ def get_flight_details(carrier_code, flight_number, departure_date):
                 "segments": segment_info, "legs": leg_info
             }
             flight_details_list.append(flight_output)
-            break
+            break # Assuming we only need the first matching flight schedule
         if flight_details_list:
             print_internal_status('success', "✅ Successfully fetched flight details.")
             return flight_details_list[0], None
@@ -346,8 +350,114 @@ class HealthRecommendations(BaseModel):
     exercise_plan: Optional[ExercisePlan] = Field(..., description="Detailed exercise plan recommendations.")
     meal_plan: Optional[MealPlan] = Field(..., description="Detailed meal plan recommendations.")
     hydration_plan: Optional[HydrationPlan] = Field(..., description="Detailed hydration plan recommendations.")
+    # New fields for personalized advice
+    light_exposure_advice: Optional[str] = Field(None, description="Advice on seeking or avoiding light based on travel direction.")
+    relaxation_advice: Optional[str] = Field(None, description="Recommendations for relaxation techniques if sleep HR is high.")
+    nap_advice: Optional[str] = Field(None, description="Advice on napping strategy, potentially modified by sleep quality.")
 # --- End Pydantic Models ---
 
+# --- Health Data Processing ---
+HEALTH_DATA_FILE = 'health_data.json'
+HIGH_SLEEP_HR_THRESHOLD = 70 # Simple threshold for "high" HR during sleep
+
+def process_health_data(days_to_consider=3):
+    """Loads health data, calculates avg sleep HR, and returns metrics."""
+    print_internal_status('info', f"📊 Processing health data from {HEALTH_DATA_FILE}...")
+    health_data = {}
+    try:
+        if os.path.exists(HEALTH_DATA_FILE):
+            with open(HEALTH_DATA_FILE, 'r') as f:
+                health_data = json.load(f)
+        else:
+            print_internal_status('warning', f"{HEALTH_DATA_FILE} not found. Cannot process health data.")
+            return {'avg_sleep_hr': None, 'is_sleep_hr_high': False, 'error': 'Health data file not found.'}
+    except Exception as e:
+        print_internal_status('error', f"Error reading {HEALTH_DATA_FILE}: {e}")
+        return {'avg_sleep_hr': None, 'is_sleep_hr_high': False, 'error': f'Error reading health data: {e}'}
+
+    sleep_sessions = health_data.get('sleepRecords', [])
+    hr_records = health_data.get('heartRateRecords', [])
+
+    if not sleep_sessions or not hr_records:
+        print_internal_status('warning', "No sleep sessions or heart rate records found in health data.")
+        return {'avg_sleep_hr': None, 'is_sleep_hr_high': False, 'error': 'Missing sleep or heart rate data.'}
+
+    # Consider only recent sleep sessions
+    cutoff_date = datetime.utcnow() - timedelta(days=days_to_consider)
+    recent_sleep_sessions = []
+    for session in sleep_sessions:
+        try:
+            # Handle potential timezone issues during parsing
+            start_time_str = session['startTime'].replace('Z', '+00:00')
+            start_time = datetime.fromisoformat(start_time_str)
+            if start_time.replace(tzinfo=None) >= cutoff_date: # Compare naive datetimes
+                 recent_sleep_sessions.append(session)
+        except Exception as e:
+            print_internal_status('warning', f"Could not parse startTime for sleep session {session.get('metadata', {}).get('id')}: {e}")
+
+    if not recent_sleep_sessions:
+        print_internal_status('warning', f"No recent sleep sessions found within the last {days_to_consider} days.")
+        return {'avg_sleep_hr': None, 'is_sleep_hr_high': False, 'error': 'No recent sleep data.'}
+
+    total_sleep_hr_sum = 0
+    total_sleep_hr_count = 0
+
+    # Flatten HR samples for easier lookup (consider optimization for very large data)
+    all_hr_samples = []
+    for record in hr_records:
+        for sample in record.get('samples', []):
+            try:
+                sample_time_str = sample['time'].replace('Z', '+00:00')
+                sample_time = datetime.fromisoformat(sample_time_str)
+                all_hr_samples.append({'time': sample_time, 'bpm': sample['beatsPerMinute']})
+            except Exception as e:
+                 print_internal_status('warning', f"Could not parse HR sample time {sample.get('time')}: {e}")
+
+    # Sort HR samples by time
+    all_hr_samples.sort(key=lambda x: x['time'])
+
+    print_internal_status('info', f"Processing {len(recent_sleep_sessions)} recent sleep sessions and {len(all_hr_samples)} HR samples...")
+
+    # Correlate HR with Sleep Sessions
+    for session in recent_sleep_sessions:
+        try:
+            session_start = datetime.fromisoformat(session['startTime'].replace('Z', '+00:00'))
+            session_end = datetime.fromisoformat(session['endTime'].replace('Z', '+00:00'))
+            session_hr_sum = 0
+            session_hr_count = 0
+
+            # Find relevant HR samples (simple linear scan, could optimize with binary search)
+            for sample in all_hr_samples:
+                if sample['time'] >= session_start and sample['time'] <= session_end:
+                    session_hr_sum += sample['bpm']
+                    session_hr_count += 1
+
+            if session_hr_count > 0:
+                avg_session_hr = session_hr_sum / session_hr_count
+                print_internal_status('info', f"  - Sleep Session ({session_start.date()}): Avg HR = {avg_session_hr:.1f} ({session_hr_count} samples)", indent=1)
+                total_sleep_hr_sum += session_hr_sum
+                total_sleep_hr_count += session_hr_count
+            else:
+                 print_internal_status('warning', f"  - Sleep Session ({session_start.date()}): No HR samples found within session.", indent=1)
+
+        except Exception as e:
+            print_internal_status('error', f"Error processing sleep session {session.get('metadata', {}).get('id')}: {e}")
+
+    overall_avg_sleep_hr = None
+    is_high = False
+    if total_sleep_hr_count > 0:
+        overall_avg_sleep_hr = total_sleep_hr_sum / total_sleep_hr_count
+        is_high = overall_avg_sleep_hr > HIGH_SLEEP_HR_THRESHOLD
+        print_internal_status('success', f"✅ Overall Avg Sleep HR ({days_to_consider} days): {overall_avg_sleep_hr:.1f} (High: {is_high})")
+    else:
+        print_internal_status('warning', f"Could not calculate overall average sleep HR (no correlated samples found).")
+
+    return {
+        'avg_sleep_hr': overall_avg_sleep_hr,
+        'is_sleep_hr_high': is_high,
+        'error': None
+    }
+# --- End Health Data Processing ---
 
 def get_crew_llm():
     return crew_llm
@@ -365,8 +475,8 @@ travel_assistant = Agent(
 # Initialize health monitor agent
 health_monitor = Agent(
     role='Health Monitor',
-    goal='Based on detailed flight information, provide recommendations for traveler health and well-being, focusing on sleep, exercise, meals, and hydration.',
-    backstory='Specialized in travel health, stress management, and circadian rhythm optimization, adept at creating personalized plans based on flight specifics.',
+    goal='Based on detailed flight information and user health metrics, provide personalized recommendations for traveler health and well-being, focusing on sleep, exercise, meals, hydration, light exposure, relaxation, and naps.',
+    backstory='Specialized in travel health, stress management, and circadian rhythm optimization, adept at creating personalized plans based on flight specifics and health data.',
     allow_delegation=False,
     llm=get_crew_llm(),
     verbose=False
@@ -382,9 +492,51 @@ schedule_generator = Agent(
     verbose=False
 )
 
+# --- Background Task for Schedule Generation ---
+def run_schedule_generation_task(flight_details_json, recommendations_file, calendar_file):
+    """Function to be run in a background thread for generating the schedule."""
+    print_internal_status('info', "🧵 Background thread started for schedule generation.")
+    try:
+        # Recreate the schedule generator task within the thread context
+        # It needs the context from the recommendations file generated by the main thread
+        generate_schedule_task = Task(
+            description=f"""
+            Based on the flight details and the generated health recommendations (read from {recommendations_file}),
+            generate a complete daily schedule as a JSON list.
+            Include events for:
+            1. Key activities suggested in the health recommendations (e.g., recommended bedtime/wake time, meal times, exercise blocks). Use appropriate titles and descriptions.
+            2. The flight departure and arrival itself.
+            Ensure all event times (startTime, endTime) are in ISO 8601 format (YYYY-MM-DDTHH:MM:SSZ). Generate unique IDs for each event using UUID format.
 
-def create_travel_crew(flight_details_json):
-    """Creates the CrewAI crew with tasks using detailed flight context."""
+            **Flight Context:**
+            ```json
+            {flight_details_json}
+            ```
+
+            **Health Recommendations Context:**
+            [Read content from the file: {recommendations_file}]
+
+            Output ONLY the JSON list, nothing else. Ensure the output is a single, valid JSON list structure.
+            """,
+            agent=schedule_generator, # Use the globally defined agent
+            # No context needed here as it reads from the file specified in description
+            expected_output="A valid JSON list representing the schedule. Each item should be an object with 'id' (string, UUID format), 'title' (string), 'startTime' (string, ISO 8601), 'endTime' (string, ISO 8601), and optional 'description' (string). Output ONLY the JSON list.",
+            output_file=calendar_file # Save output directly to calendar file
+        )
+
+        # Execute the single task (no need for a full crew here)
+        result = generate_schedule_task.execute()
+        print_internal_status('success', f"🧵 Background schedule generation completed. Result saved to {calendar_file}.")
+        # Optionally log the result or handle errors if needed
+        # print(f"Schedule Task Result: {result}")
+
+    except Exception as e:
+        print_internal_status('error', f"🧵 Error in background schedule generation thread: {e}")
+# --- End Background Task ---
+
+
+def create_recommendation_crew(flight_details_json, health_metrics):
+    """Creates the CrewAI crew for generating recommendations ONLY."""
     flight_details = json.loads(flight_details_json)
     destination_code = flight_details.get('arrival', {}).get('airportCode', 'Unknown Destination')
     departure_time = flight_details.get('departure', {}).get('scheduledTimeISO', 'Unknown Departure Time')
@@ -396,33 +548,66 @@ def create_travel_crew(flight_details_json):
     else:
         print_internal_status('warning', "No 'legs' data found in flight details to determine duration.")
 
-    # Task 1: Analyze Travel
+    # Task 1: Analyze Travel (Optional - could be removed if not strictly needed for health recs)
     analyze_travel = Task(
         description=f"""
-        Analyze the provided flight details and generate travel recommendations focusing on:
-        1. Circadian rhythm adjustment strategy (consider departure time {departure_time}, arrival time {arrival_time}, flight duration {duration}, and destination {destination_code}).
-        2. Pre-flight preparation.
-        3. During flight activities (consider flight duration {duration}).
-        4. Post-arrival adjustment plan for {destination_code}.
+        Analyze the provided flight details focusing on aspects relevant to health recommendations:
+        1. Travel direction (Eastward/Westward estimate based on times).
+        2. Flight duration ({duration}).
+        3. Departure ({departure_time}) and arrival ({arrival_time}) times.
 
         **Full Flight Context:**
         ```json
         {flight_details_json}
         ```
-
-        Format your response strictly as a JSON object with the following structure:
-        {{
-            "circadian_adjustment": {{ ... }}, "preparation": {{ ... }}, "flight_wellbeing": {{ ... }}, "arrival_plan": {{ ... }}
-        }}
         """,
         agent=travel_assistant,
-        expected_output="JSON object containing detailed travel adjustment and preparation recommendations."
+        expected_output="A summary of travel direction, duration, and key times relevant for health planning."
     )
 
-    # Task 2: Health Recommendations
+    # Extract health metrics for context
+    avg_sleep_hr = health_metrics.get('avg_sleep_hr')
+    is_sleep_hr_high = health_metrics.get('is_sleep_hr_high', False)
+    health_context_summary = f"Recent Avg Sleep HR: {avg_sleep_hr:.1f} BPM." if avg_sleep_hr else "No recent sleep HR data available."
+    if avg_sleep_hr:
+        health_context_summary += f" Sleep HR is considered {'High' if is_sleep_hr_high else 'Normal'} (Threshold: {HIGH_SLEEP_HR_THRESHOLD} BPM)."
+
+    # Determine travel direction for light exposure advice (simplified)
+    travel_direction = "eastward" # Default assumption
+    try:
+        # Attempt to parse assuming Z means UTC
+        dep_dt_utc = datetime.fromisoformat(departure_time.replace('Z', '+00:00'))
+        arr_dt_utc = datetime.fromisoformat(arrival_time.replace('Z', '+00:00'))
+
+        # A very rough heuristic based on UTC times - needs proper timezone info for accuracy
+        time_diff = arr_dt_utc - dep_dt_utc
+        # If arrival time (ignoring date change) is 'earlier' than departure, likely eastward
+        if arr_dt_utc.time() < dep_dt_utc.time() and time_diff < timedelta(hours=12): # Basic check
+             travel_direction = "eastward"
+        elif dep_dt_utc.time() < arr_dt_utc.time() and time_diff < timedelta(hours=12):
+             travel_direction = "westward"
+        # This doesn't reliably handle crossing dateline or midnight, needs airport timezones
+        print_internal_status('info', f"Estimated travel direction: {travel_direction} (based on UTC times - may be inaccurate)")
+
+    except Exception as e:
+        print_internal_status('warning', f"Could not parse flight times to estimate direction: {e}")
+        pass # Keep default
+
+    # Task 2: Health Recommendations (Updated Description)
     health_recommendations_task = Task(
         description=f"""
-        Based on the provided flight details, generate personalized health recommendations covering sleep, exercise, meals, and hydration for the trip to {destination_code}. Ensure all fields in the required output structure are populated with relevant advice.
+        Based on the provided flight details and user health metrics, generate personalized health recommendations covering sleep, exercise, meals, hydration, light exposure, relaxation, and naps for the trip to {destination_code}.
+        Ensure all fields in the required output structure (HealthRecommendations Pydantic model) are populated with relevant advice.
+
+        **Personalization Rules (Use these):**
+        - **Sleep Schedule Adjustment:** Recommend a standard adjustment pace (e.g., shift 1 hour per day). HOWEVER, if `is_sleep_hr_high` is True, recommend a slower pace (e.g., "Adjust your schedule more gradually, shifting by only 30-60 minutes per day.") within the `adjustment_period_advice`.
+        - **Relaxation:** If `is_sleep_hr_high` is True, include a recommendation for relaxation techniques (e.g., deep breathing, meditation) in the `relaxation_advice` field. Otherwise, leave it null or provide a generic tip.
+        - **Naps:** If `is_sleep_hr_high` is True, recommend avoiding naps on the travel day in the `nap_advice` field to build sleep pressure. Otherwise, provide standard nap advice (e.g., short naps if needed).
+        - **Light Exposure:** Based on the estimated travel direction ({travel_direction}), provide light exposure advice in the `light_exposure_advice` field. For eastward travel, recommend seeking morning light upon arrival. For westward travel, recommend avoiding morning light and seeking afternoon/evening light.
+
+        **User Health Context:**
+        {health_context_summary}
+        is_sleep_hr_high: {is_sleep_hr_high}
 
         **Full Flight Context:**
         ```json
@@ -430,45 +615,20 @@ def create_travel_crew(flight_details_json):
         ```
         """,
         agent=health_monitor,
-        expected_output="A Pydantic object conforming to the HealthRecommendations model.",
-        output_pydantic=HealthRecommendations,
+        expected_output="A Pydantic object conforming to the HealthRecommendations model, including personalized advice based on health metrics.",
+        output_pydantic=HealthRecommendations, # Ensure this matches the updated model
         output_file=RECOMMENDATIONS_FILE, # Save health recommendations to file
-        context=[analyze_travel]
+        context=[analyze_travel] # Depends on travel analysis
     )
 
-    # Task 3: Generate Schedule JSON
-    generate_schedule_task = Task(
-        description=f"""
-        Based on the flight details and the generated health recommendations, generate a complete daily schedule as a JSON list.
-        Include events for:
-        1. Key activities suggested in the health recommendations (e.g., recommended bedtime/wake time, meal times, exercise blocks). Use appropriate titles and descriptions.
-        2. The flight departure and arrival itself.
-        Ensure all event times (startTime, endTime) are in ISO 8601 format (YYYY-MM-DDTHH:MM:SSZ). Generate unique IDs for each event using UUID format.
-
-        **Flight Context:**
-        ```json
-        {flight_details_json}
-        ```
-
-        **Health Recommendations Context (from previous task):**
-        [Refer to the output of the 'health_recommendations_task']
-
-        Output ONLY the JSON list, nothing else. Ensure the output is a single, valid JSON list structure.
-        """,
-        agent=schedule_generator,
-        context=[health_recommendations_task], # Depend on the health task
-        expected_output="A valid JSON list representing the schedule. Each item should be an object with 'id' (string, UUID format), 'title' (string), 'startTime' (string, ISO 8601), 'endTime' (string, ISO 8601), and optional 'description' (string). Output ONLY the JSON list.",
-        output_file=CALENDAR_FILE # Save output directly to calendar file
-    )
-
-    # Create and return the crew
+    # Create and return the crew for recommendations only
     crew = Crew(
-        agents=[travel_assistant, health_monitor, schedule_generator],
-        tasks=[analyze_travel, health_recommendations_task, generate_schedule_task],
+        agents=[travel_assistant, health_monitor], # Only agents needed for recommendations
+        tasks=[analyze_travel, health_recommendations_task],
         process=Process.sequential,
         verbose=False
     )
-    return crew
+    return crew, health_recommendations_task # Return task object for context if needed later
 
 @app.route('/api/flight-recommendations', methods=['POST'])
 def flight_recommendations_endpoint():
@@ -487,22 +647,25 @@ def flight_recommendations_endpoint():
         flight_details, error_msg = get_flight_details(carrier_code, flight_number, departure_date)
         if error_msg: return jsonify({'error': f"Failed to get flight details: {error_msg}"}), 500
         if not flight_details: return jsonify({'error': "Failed to get flight details, no specific error message."}), 500
-        flight_details_json_str = json.dumps(flight_details)
+        flight_details_json_str = json.dumps(flight_details) # Keep JSON string for background task
 
-        # 2. Run CrewAI (tasks will save outputs to files)
-        # Removed clear_calendar_events() - schedule task now overwrites via output_file
-        print_internal_status('info', "🧠 Initializing CrewAI analysis and schedule generation...")
-        crew = create_travel_crew(flight_details_json_str)
-        crew_result = crew.kickoff() # Run the crew
+        # 2. Process Health Data
+        health_metrics = process_health_data() # Get avg sleep HR etc.
 
-        # 3. Read Recommendations from file for response
+        # 3. Run CrewAI for Recommendations ONLY
+        print_internal_status('info', "🧠 Initializing CrewAI for recommendations...")
+        recommendation_crew, health_task = create_recommendation_crew(flight_details_json_str, health_metrics)
+        recommendation_crew_result = recommendation_crew.kickoff() # Run the recommendation part
+
+        # 4. Read Recommendations from file for immediate response
         recommendations_dict = {}
+        recommendations_generated = False
         try:
-            # Ensure file exists before trying to read
             if os.path.exists(RECOMMENDATIONS_FILE):
                  with open(RECOMMENDATIONS_FILE, 'r') as f:
                     recommendations_dict = json.load(f)
-                 print_internal_status('info', f"Read recommendations from {RECOMMENDATIONS_FILE}")
+                 print_internal_status('success', f"✅ Successfully read recommendations from {RECOMMENDATIONS_FILE}")
+                 recommendations_generated = True
             else:
                  print_internal_status('error', f"❌ Recommendations file '{RECOMMENDATIONS_FILE}' not found after crew kickoff.")
                  recommendations_dict = {"error": "Recommendations file not generated by task."}
@@ -514,77 +677,59 @@ def flight_recommendations_endpoint():
              print_internal_status('error', f"❌ Error reading recommendations file: {e}")
              recommendations_dict = {"error": f"Error reading recommendations file: {e}"}
 
-        # Schedule is saved directly by the generate_schedule_task
+        # 5. Start Schedule Generation in Background Thread (if recommendations were generated)
+        if recommendations_generated:
+            print_internal_status('info', "🚀 Starting background thread for schedule generation...")
+            schedule_thread = threading.Thread(
+                target=run_schedule_generation_task,
+                args=(flight_details_json_str, RECOMMENDATIONS_FILE, CALENDAR_FILE)
+            )
+            schedule_thread.start()
+        else:
+             print_internal_status('warning', "Skipping background schedule generation due to issues with recommendations.")
 
-        # 4. Combine and return flight details + health recommendations
+
+        # 6. Combine and return flight details + health recommendations (immediate response)
         final_response = {
-            'success': True,
+            'success': True, # Indicate initial success, even if schedule is pending
             'flight_details': flight_details,
             'recommendations': recommendations_dict
-            # Schedule is saved to file, not returned directly here,
-            # but frontend will fetch it separately from /api/calendar/events
+            # Schedule will be generated in the background and saved to CALENDAR_FILE
         }
-        print_internal_status('complete', "✅ Successfully generated flight recommendations and schedule.")
+        print_internal_status('complete', "✅ Recommendations generated. Schedule generation started in background.")
         return jsonify(final_response)
 
     except Exception as e:
         print_internal_status('error', f"❌ Unexpected error in endpoint: {str(e)}")
+        # Log the full traceback for debugging
+        import traceback
+        traceback.print_exc()
         return jsonify({'error': f"An unexpected server error occurred: {str(e)}"}), 500
 
 @app.route('/api/health-data', methods=['POST'])
 def receive_health_data():
-    """Receives health data from the frontend and performs analysis."""
+    """Receives health data from the frontend and saves it.""" # Updated docstring
     try:
         health_data = request.json
         if not health_data:
             print_internal_status('error', "❌ Received empty health data payload.")
             return jsonify({'error': 'No data received'}), 400
         print_internal_status('info', "🩺 Received health data from frontend.")
-        file_path = 'health_data.json'
+        file_path = HEALTH_DATA_FILE # Use constant
         print_internal_status('info', f"💾 Saving health data to {file_path}...")
         try:
-            with open(file_path, 'w') as f:
-                json.dump(health_data, f, indent=2)
+            # Use lock for writing too
+            with calendar_lock:
+                with open(file_path, 'w') as f:
+                    json.dump(health_data, f, indent=2)
             print_internal_status('success', f"✅ Successfully saved health data to {file_path}")
+            # Return simple success message
+            return jsonify({'message': 'Health data received and saved successfully.'}), 200
         except IOError as e:
             print_internal_status('error', f"❌ Error saving health data to file: {str(e)}")
-            return jsonify({'error': f"Failed to save health data to file: {str(e)}", 'analysis': None}), 500
-        print_internal_status('info', "📊 Analyzing saved health data...")
-        average_hr = None
-        total_sleep_str = "N/A"
-        try:
-            total_hr_bpm = 0
-            hr_sample_count = 0
-            if 'heartRateRecords' in health_data and isinstance(health_data['heartRateRecords'], list):
-                for record in health_data['heartRateRecords']:
-                    if 'samples' in record and isinstance(record['samples'], list):
-                        for sample in record['samples']:
-                            if 'beatsPerMinute' in sample:
-                                total_hr_bpm += sample['beatsPerMinute']
-                                hr_sample_count += 1
-            if hr_sample_count > 0: average_hr = total_hr_bpm / hr_sample_count
-            total_sleep_duration = timedelta(0)
-            if 'sleepRecords' in health_data and isinstance(health_data['sleepRecords'], list):
-                for record in health_data['sleepRecords']:
-                    try:
-                        start_time_str = record.get('startTime', '').replace('Z', '')
-                        end_time_str = record.get('endTime', '').replace('Z', '')
-                        if start_time_str and end_time_str:
-                            start_dt = datetime.fromisoformat(start_time_str)
-                            end_dt = datetime.fromisoformat(end_time_str)
-                            total_sleep_duration += (end_dt - start_dt)
-                    except Exception as e: print_internal_status('warning', f"Could not parse sleep record times: {e}")
-            if total_sleep_duration.total_seconds() > 0:
-                total_seconds = int(total_sleep_duration.total_seconds())
-                hours = total_seconds // 3600
-                minutes = (total_seconds % 3600) // 60
-                total_sleep_str = f"{hours}h {minutes}m"
-            return jsonify({'message': 'Health data received, saved, and analyzed.', 'averageHeartRate': average_hr, 'totalSleepTime': total_sleep_str}), 200
-        except Exception as e:
-             print_internal_status('error', f"❌ Error during health data analysis: {str(e)}")
-             return jsonify({'message': 'Health data received and saved, but analysis failed.', 'error_analysis': str(e), 'averageHeartRate': None, 'totalSleepTime': None}), 500
+            return jsonify({'error': f"Failed to save health data to file: {str(e)}"}), 500
     except Exception as e:
-        print_internal_status('error', f"❌ Error processing health data: {str(e)}")
+        print_internal_status('error', f"❌ Error processing health data request: {str(e)}")
         return jsonify({'error': f"An unexpected server error occurred: {str(e)}"}), 500
 
 @app.route('/api/calendar/events', methods=['GET'])
@@ -611,4 +756,5 @@ if __name__ == '__main__':
     print_internal_status('info', f"🔑 Gemini API Key loaded: {'Yes' if gemini_api_key else 'No'}")
     print_internal_status('info', f"🔑 Amadeus API Keys loaded: {'Yes' if amadeus_client_id and amadeus_client_secret else 'No'}")
     print("="*60 + "\n")
+    # Ensure Flask runs threaded if using background threads within requests
     app.run(debug=True, port=5000, host='0.0.0.0', use_reloader=False, threaded=True)
