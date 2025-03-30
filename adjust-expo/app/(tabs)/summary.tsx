@@ -1,13 +1,3 @@
-<<<<<<< HEAD
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-
-const SummaryPage: React.FC = () => {
-  const [question, setQuestion] = useState<string>('');
-  const [aiResponse, setAiResponse] = useState<string>('');
-  const [loading, setLoading] = useState<boolean>(false);
-=======
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
 import { useFlightData } from '../../context/FlightDataContext'; // Import the context hook
@@ -37,7 +27,6 @@ const InfoSection: React.FC<{ title: string; children: React.ReactNode; icon?: k
 
 const SummaryPage: React.FC = () => {
   const { flightData, isLoading, error } = useFlightData();
->>>>>>> 53d0ad1e18920c977f9dadfcf705c51bd76b35c6
 
   // --- Loading State ---
   if (isLoading) {
@@ -151,36 +140,6 @@ const SummaryPage: React.FC = () => {
             </InfoSection>
           )}
 
-<<<<<<< HEAD
-      {/* AI Assistant Section */}
-      <View style={styles.aiSection}>
-        <TextInput
-          style={styles.input}
-          placeholder="Ask about your schedule..."
-          value={question}
-          onChangeText={setQuestion}
-        />
-        <TouchableOpacity
-  style={styles.button}
-  onPress={handleAskAI}
-  disabled={loading}
->
-  <Ionicons name="chatbubbles" size={24} color="#fff" style={styles.buttonIcon} />
-  <Text style={styles.buttonText}>Ask AI</Text>
-</TouchableOpacity>
-
-        {loading ? (
-          <ActivityIndicator size="small" color="#fff" style={styles.loading} />
-        ) : (
-          <Text style={styles.aiResponse}>{aiResponse}</Text>
-        )}
-      </View>
-
-      {/* Sync Button */}
-      <TouchableOpacity style={styles.syncButton}>
-        <Text style={styles.syncButtonText}>Sync to Timeline</Text>
-      </TouchableOpacity>
-=======
            {/* Hydration Plan Section */}
            {recs.hydration_plan && (
             <InfoSection title="Hydration Plan" icon="water-outline">
@@ -207,7 +166,6 @@ const SummaryPage: React.FC = () => {
 
       {/* Removed AI Assistant Section and Sync Button */}
 
->>>>>>> 53d0ad1e18920c977f9dadfcf705c51bd76b35c6
     </ScrollView>
   );
 };
@@ -238,15 +196,10 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   subTitle: {
-<<<<<<< HEAD
-    fontSize: 18,
-    color: '#4a90e2',
-=======
     fontSize: 16, // Smaller subtitle
     color: '#00AFFF', // Brighter blue
     marginTop: 5,
     textAlign: 'center',
->>>>>>> 53d0ad1e18920c977f9dadfcf705c51bd76b35c6
   },
   scheduleSection: {
     marginBottom: 25, // More space between sections
@@ -315,51 +268,12 @@ const styles = StyleSheet.create({
     color: '#FFC0CB', // Lighter pink for error details
     textAlign: 'center',
   },
-<<<<<<< HEAD
-  loading: {
-    marginTop: 10,
-  },
-  button: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center', // Center content horizontally
-    backgroundColor: '#6a4c9c',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    marginTop: 10,
-    width: '60%', // Adjust width to ensure the button is not too wide
-    alignSelf: 'center', // Center the button horizontally within its parent
-  },
-  
-  buttonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginLeft: 8,
-  },
-  buttonIcon: {
-    marginRight: 8,
-  },
-  syncButton: {
-    backgroundColor: '#6a4c9c',
-    paddingVertical: 14,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginTop: 30,
-  },
-  syncButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-=======
   noDataText: {
     fontSize: 16,
     color: '#ccc',
     textAlign: 'center',
     marginTop: 15,
     lineHeight: 24,
->>>>>>> 53d0ad1e18920c977f9dadfcf705c51bd76b35c6
   },
    fallbackContainer: {
     marginTop: 20,
